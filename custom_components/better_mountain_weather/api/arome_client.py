@@ -20,20 +20,18 @@ class AromeClient:
 
     def __init__(
         self,
-        api_key: str,
+        access_token: str,
         latitude: float,
         longitude: float,
-        session: Any,
     ) -> None:
         """Initialize the AROME client.
 
         Args:
-            api_key: Météo-France API key
+            access_token: Météo-France API access token
             latitude: Location latitude
             longitude: Location longitude
-            session: aiohttp client session
         """
-        self._client = MeteoFranceClient(api_key=api_key, session=session)
+        self._client = MeteoFranceClient(access_token=access_token)
         self._latitude = latitude
         self._longitude = longitude
         self._place: Place | None = None

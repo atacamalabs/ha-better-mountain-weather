@@ -90,14 +90,12 @@ class BetterMountainWeatherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             # Validate AROME token by creating client
             try:
-                session = async_get_clientsession(self.hass)
                 self._client = MeteoFranceClient(
-                    api_key=user_input[CONF_AROME_TOKEN],
-                    session=session
+                    access_token=user_input[CONF_AROME_TOKEN]
                 )
                 # Test the client connection
                 await self.hass.async_add_executor_job(
-                    self._client.get_places, "Chamonix"
+                    self._client.search_places, 45.9, 6.9
                 )
             except Exception as err:
                 _LOGGER.error("Error validating AROME token: %s", err)

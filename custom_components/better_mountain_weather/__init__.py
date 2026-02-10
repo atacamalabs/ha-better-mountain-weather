@@ -7,7 +7,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api.arome_client import AromeApiError, AromeClient
 from .const import (
@@ -52,15 +51,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         longitude,
     )
 
-    # Initialize HTTP session
-    session = async_get_clientsession(hass)
-
     # Initialize AROME client
     arome_client = AromeClient(
-        api_key=arome_token,
+        access_token=arome_token,
         latitude=latitude,
         longitude=longitude,
-        session=session,
     )
 
     # Initialize AROME coordinator

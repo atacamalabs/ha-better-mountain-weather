@@ -268,8 +268,5 @@ class BetterMountainWeatherSensor(CoordinatorEntity[AromeCoordinator], SensorEnt
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        # Sensor is available if coordinator has data
-        # Air quality sensor may return None, which is expected
-        if self.entity_description.key == SENSOR_TYPE_AIR_QUALITY:
-            return self.coordinator.last_update_success
+        # Sensor is available if coordinator has data and value is not None
         return self.coordinator.last_update_success and self.native_value is not None

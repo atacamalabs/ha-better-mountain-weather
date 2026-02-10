@@ -166,7 +166,8 @@ class AromeClient:
             return {
                 "elevation": position.get("alti", 0) if position else 0,
                 "uv_index": today.get("uv", 0) if today else 0,
-                "air_quality": None,  # Not provided by Météo-France API
+                # air_quality removed - not available from Météo-France API
+                # TODO Phase 3: Add from ATMO France or other source
                 "sunrise": sunrise,
                 "sunset": sunset,
             }

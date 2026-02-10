@@ -81,7 +81,6 @@ MASSIFS: Final = {
 
 # Sensor types for AROME
 SENSOR_TYPE_ELEVATION: Final = "elevation"
-SENSOR_TYPE_AIR_QUALITY: Final = "air_quality"
 SENSOR_TYPE_UV_INDEX: Final = "uv_index"
 SENSOR_TYPE_SUNRISE: Final = "sunrise"
 SENSOR_TYPE_SUNSET: Final = "sunset"

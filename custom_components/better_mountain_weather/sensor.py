@@ -32,7 +32,6 @@ from .const import (
     CONF_LOCATION_NAME,
     DOMAIN,
     MANUFACTURER,
-    SENSOR_TYPE_AIR_QUALITY,
     SENSOR_TYPE_CLOUD_COVERAGE,
     SENSOR_TYPE_ELEVATION,
     SENSOR_TYPE_HUMIDITY,
@@ -65,13 +64,8 @@ AROME_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: data.get("elevation"),
     ),
-    BetterMountainWeatherSensorDescription(
-        key=SENSOR_TYPE_AIR_QUALITY,
-        name="Air Quality",
-        state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:air-filter",
-        value_fn=lambda data: data.get("air_quality"),
-    ),
+    # Air Quality - Removed (not available from Météo-France API)
+    # TODO Phase 3: Add air quality from ATMO France or other source
     BetterMountainWeatherSensorDescription(
         key=SENSOR_TYPE_UV_INDEX,
         name="UV Index",

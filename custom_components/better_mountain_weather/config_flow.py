@@ -16,8 +16,6 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
-    CONF_AROME_TOKEN,
-    CONF_BRA_TOKEN,
     CONF_LOCATION_NAME,
     CONF_MASSIF_ID,
     CONF_MASSIF_NAME,
@@ -75,57 +73,11 @@ class BetterMountainWeatherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._data: dict[str, Any] = {}
-        self._client: MeteoFranceClient | None = None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step - collect API tokens."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            # Store tokens temporarily
-            self._data[CONF_AROME_TOKEN] = user_input[CONF_AROME_TOKEN]
-            self._data[CONF_BRA_TOKEN] = user_input[CONF_BRA_TOKEN]
-
-            # Validate AROME token by creating client
-            try:
-                self._client = MeteoFranceClient(
-                    access_token=user_input[CONF_AROME_TOKEN]
-                )
-                # Test the client connection
-                await self.hass.async_add_executor_job(
-                    self._client.search_places, 45.9, 6.9
-                )
-            except Exception as err:
-                _LOGGER.error("Error validating AROME token: %s", err)
-                errors["base"] = "invalid_auth"
-            else:
-                # AROME token is valid, proceed to location step
-                return await self.async_step_location()
-
-        # Show the form
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_AROME_TOKEN): str,
-                vol.Required(CONF_BRA_TOKEN): str,
-            }
-        )
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=data_schema,
-            errors=errors,
-            description_placeholders={
-                "arome_info": "Get your AROME API key from Météo-France portal",
-                "bra_info": "Get your BRA API key for avalanche bulletins",
-            },
-        )
-
-    async def async_step_location(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle the location step - collect GPS coordinates."""
+        """Handle the initial step - collect GPS coordinates."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -134,9 +86,12 @@ class BetterMountainWeatherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             # Validate location and get place information
             try:
+                # Initialize client without authentication (free API)
+                client = MeteoFranceClient()
+
                 # Search for nearest place
                 places = await self.hass.async_add_executor_job(
-                    self._client.search_places,
+                    client.search_places,
                     latitude,
                     longitude,
                 )
@@ -182,7 +137,7 @@ class BetterMountainWeatherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
         return self.async_show_form(
-            step_id="location",
+            step_id="user",
             data_schema=data_schema,
             errors=errors,
             description_placeholders={

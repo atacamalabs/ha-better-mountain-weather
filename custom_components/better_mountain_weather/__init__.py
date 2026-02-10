@@ -10,7 +10,6 @@ from homeassistant.exceptions import ConfigEntryNotReady
 
 from .api.arome_client import AromeApiError, AromeClient
 from .const import (
-    CONF_AROME_TOKEN,
     CONF_BRA_TOKEN,
     CONF_LOCATION_NAME,
     CONF_MASSIF_ID,
@@ -37,7 +36,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ConfigEntryNotReady: If setup should be retried
     """
     # Extract configuration
-    arome_token = entry.data[CONF_AROME_TOKEN]
     bra_token = entry.data.get(CONF_BRA_TOKEN)
     latitude = entry.data[CONF_LATITUDE]
     longitude = entry.data[CONF_LONGITUDE]
@@ -51,9 +49,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         longitude,
     )
 
-    # Initialize AROME client
+    # Initialize AROME client (no authentication required)
     arome_client = AromeClient(
-        access_token=arome_token,
         latitude=latitude,
         longitude=longitude,
     )

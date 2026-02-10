@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 from typing import Any
 
@@ -80,8 +80,7 @@ class AromeClient:
             daily_forecasts = []
 
             for daily in forecast.daily_forecast:
-                from datetime import datetime
-                dt = datetime.fromtimestamp(daily.get("dt", 0))
+                dt = datetime.fromtimestamp(daily.get("dt", 0), tz=timezone.utc)
 
                 daily_forecasts.append({
                     "datetime": dt.isoformat(),
@@ -116,8 +115,7 @@ class AromeClient:
             hourly_forecasts = []
 
             for hourly in forecast.forecast:  # Use forecast, not hourly_forecast
-                from datetime import datetime
-                dt = datetime.fromtimestamp(hourly.get("dt", 0))
+                dt = datetime.fromtimestamp(hourly.get("dt", 0), tz=timezone.utc)
 
                 hourly_forecasts.append({
                     "datetime": dt.isoformat(),
@@ -155,13 +153,13 @@ class AromeClient:
             # Get today's forecast for UV and sun times
             today = forecast.today_forecast if hasattr(forecast, 'today_forecast') else {}
 
-            # Get sunrise/sunset from today's forecast
+            # Get sunrise/sunset from today's forecast (timezone-aware)
             if today and "sun" in today:
-                sunrise = datetime.fromtimestamp(today["sun"].get("rise", 0))
-                sunset = datetime.fromtimestamp(today["sun"].get("set", 0))
+                sunrise = datetime.fromtimestamp(today["sun"].get("rise", 0), tz=timezone.utc)
+                sunset = datetime.fromtimestamp(today["sun"].get("set", 0), tz=timezone.utc)
             else:
-                # Fallback to simplified calculation
-                now = datetime.now()
+                # Fallback to simplified calculation (timezone-aware)
+                now = datetime.now(tz=timezone.utc)
                 sunrise = now.replace(hour=7, minute=0, second=0, microsecond=0)
                 sunset = now.replace(hour=19, minute=0, second=0, microsecond=0)
 

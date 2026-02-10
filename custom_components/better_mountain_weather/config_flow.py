@@ -1,21 +1,18 @@
 """Config flow for Better Mountain Weather integration."""
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
-from meteofrance_api import MeteoFranceClient
-from meteofrance_api.helpers import get_warning_text_status_from_indice_color
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 
+from .api.openmeteo_client import OpenMeteoClient, OpenMeteoApiError
 from .const import (
     CONF_LOCATION_NAME,
     CONF_MASSIF_ID,
@@ -93,24 +90,17 @@ class BetterMountainWeatherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     longitude,
                 )
 
-                # Initialize client without authentication (free API)
-                client = MeteoFranceClient()
-                _LOGGER.debug("MeteoFranceClient initialized successfully")
+                # Initialize Open-Meteo client (no authentication needed)
+                client = OpenMeteoClient(latitude=latitude, longitude=longitude)
+                _LOGGER.debug("OpenMeteoClient initialized successfully")
 
-                # Test coordinates by fetching forecast
-                _LOGGER.debug("Fetching forecast for coordinates...")
-                forecast = await asyncio.to_thread(
-                    client.get_forecast,
-                    latitude,
-                    longitude,
-                )
-                _LOGGER.debug("Forecast retrieved successfully")
+                # Test coordinates by fetching current weather
+                _LOGGER.debug("Fetching weather for coordinates...")
+                current = await client.async_get_current_weather()
+                _LOGGER.debug("Weather data retrieved successfully")
 
-                # Get location name from forecast or use coordinates
-                if hasattr(forecast, 'position') and forecast.position:
-                    location_name = forecast.position.get('name', f"Location {latitude:.2f}, {longitude:.2f}")
-                else:
-                    location_name = f"Location {latitude:.2f}, {longitude:.2f}"
+                # Use coordinates as location name
+                location_name = f"Location {latitude:.2f}, {longitude:.2f}"
 
                 # Store location data
                 self._data[CONF_LATITUDE] = latitude

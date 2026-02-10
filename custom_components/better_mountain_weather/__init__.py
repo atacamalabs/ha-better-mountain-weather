@@ -8,7 +8,7 @@ from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from .api.arome_client import AromeApiError, AromeClient
+from .api.openmeteo_client import OpenMeteoApiError, OpenMeteoClient
 from .const import (
     CONF_BRA_TOKEN,
     CONF_LOCATION_NAME,
@@ -49,8 +49,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         longitude,
     )
 
-    # Initialize AROME client (no authentication required)
-    arome_client = AromeClient(
+    # Initialize Open-Meteo client (no authentication required)
+    arome_client = OpenMeteoClient(
         latitude=latitude,
         longitude=longitude,
     )
@@ -62,12 +62,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         location_name=location_name,
     )
 
-    # Fetch initial AROME data
+    # Fetch initial weather data
     try:
         await arome_coordinator.async_config_entry_first_refresh()
-    except AromeApiError as err:
-        _LOGGER.error("Error communicating with AROME API: %s", err)
-        raise ConfigEntryNotReady(f"Error communicating with AROME API: {err}") from err
+    except OpenMeteoApiError as err:
+        _LOGGER.error("Error communicating with Open-Meteo API: %s", err)
+        raise ConfigEntryNotReady(f"Error communicating with Open-Meteo API: {err}") from err
     except Exception as err:
         _LOGGER.error("Unexpected error during AROME setup: %s", err)
         raise ConfigEntryNotReady(f"Unexpected error: {err}") from err

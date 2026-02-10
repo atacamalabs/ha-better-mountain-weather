@@ -8,26 +8,26 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api.arome_client import AromeApiError, AromeClient
+from .api.openmeteo_client import OpenMeteoApiError, OpenMeteoClient
 from .const import AROME_UPDATE_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Coordinator for AROME weather data updates."""
+    """Coordinator for weather data updates."""
 
     def __init__(
         self,
         hass: HomeAssistant,
-        client: AromeClient,
+        client: OpenMeteoClient,
         location_name: str,
     ) -> None:
-        """Initialize the AROME coordinator.
+        """Initialize the weather coordinator.
 
         Args:
             hass: Home Assistant instance
-            client: AROME API client
+            client: Open-Meteo API client
             location_name: Name of the location for logging
         """
         super().__init__(
@@ -40,16 +40,16 @@ class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.location_name = location_name
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from AROME API.
+        """Fetch data from Open-Meteo API.
 
         Returns:
-            Dictionary containing all AROME data
+            Dictionary containing all weather data
 
         Raises:
             UpdateFailed: If update fails
         """
         try:
-            _LOGGER.debug("Updating AROME data for %s", self.location_name)
+            _LOGGER.debug("Updating weather data for %s", self.location_name)
 
             # Fetch all data in parallel where possible
             current_weather = await self.client.async_get_current_weather()
@@ -81,7 +81,7 @@ class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             }
 
             _LOGGER.debug(
-                "Successfully updated AROME data for %s: %d daily forecasts, %d hourly forecasts",
+                "Successfully updated weather data for %s: %d daily forecasts, %d hourly forecasts",
                 self.location_name,
                 len(daily_forecast),
                 len(hourly_forecast),
@@ -89,12 +89,12 @@ class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             return data
 
-        except AromeApiError as err:
-            _LOGGER.error("Error fetching AROME data for %s: %s", self.location_name, err)
-            raise UpdateFailed(f"Error fetching AROME data: {err}") from err
+        except OpenMeteoApiError as err:
+            _LOGGER.error("Error fetching weather data for %s: %s", self.location_name, err)
+            raise UpdateFailed(f"Error fetching weather data: {err}") from err
         except Exception as err:
             _LOGGER.error(
-                "Unexpected error fetching AROME data for %s: %s",
+                "Unexpected error fetching weather data for %s: %s",
                 self.location_name,
                 err,
             )

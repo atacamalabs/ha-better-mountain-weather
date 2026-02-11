@@ -231,11 +231,11 @@ AIR_QUALITY_CURRENT_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] 
 
 
 def _create_daily_aqi_sensors() -> tuple[BetterMountainWeatherSensorDescription, ...]:
-    """Create daily air quality sensors for days 0-6 (7 days)."""
+    """Create daily air quality sensors for days 0-4 (5 days)."""
     sensors = []
-    day_names = ["Today", "Tomorrow", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6"]
+    day_names = ["Today", "Tomorrow", "Day 2", "Day 3", "Day 4"]
 
-    for day_idx in range(7):
+    for day_idx in range(5):
         day_name = day_names[day_idx]
 
         # European AQI Max

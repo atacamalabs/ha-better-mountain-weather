@@ -49,7 +49,7 @@ class AirQualityClient:
             ]),
             "hourly": "european_aqi,pm2_5,pm10",
             "timezone": "auto",
-            "forecast_days": 7,  # Get 7 days of hourly data
+            "forecast_days": 5,  # Get 5 days of hourly data (API limit)
         }
 
         try:

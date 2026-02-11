@@ -377,11 +377,11 @@ class BetterMountainWeather(CoordinatorEntity[AromeCoordinator], WeatherEntity):
             so2 = current_aqi.get("sulphur_dioxide")
             attrs["current_sulphur_dioxide"] = f"{so2}µg/m³" if so2 is not None else None
 
-        # Add daily air quality forecast (next 7 days)
+        # Add daily air quality forecast (next 5 days)
         daily_aqi = air_quality.get("daily_forecast", [])
-        aqi_day_names = ["today", "tomorrow", "day_2", "day_3", "day_4", "day_5", "day_6"]
+        aqi_day_names = ["today", "tomorrow", "day_2", "day_3", "day_4"]
 
-        for day_idx in range(min(7, len(daily_aqi))):
+        for day_idx in range(min(5, len(daily_aqi))):
             day_data = daily_aqi[day_idx]
             day_name = aqi_day_names[day_idx]
 

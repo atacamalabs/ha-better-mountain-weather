@@ -72,6 +72,7 @@ class BetterMountainWeatherSensorDescription(SensorEntityDescription):
     """Class describing Better Mountain Weather sensor entities."""
 
     value_fn: Callable[[dict[str, Any]], StateType] = None
+    extra_attributes_fn: Callable[[dict[str, Any]], dict[str, Any]] | None = None
 
 
 # Static sensors (not dependent on weather updates)

@@ -17,7 +17,7 @@
       },
       "prefix": {
         "title": "Entity ID Prefix",
-        "description": "Choose a short identifier for your entities. This will be used in entity IDs like 'sensor.serac_{entity_prefix}_temperature'. Suggested: {suggested_prefix}\n\nExample entity: {example_entity}",
+        "description": "Choose a short identifier for your entities. Suggested: {suggested_prefix}\n\nExample: {example_entity}",
         "data": {
           "entity_prefix": "Entity Prefix"
         },

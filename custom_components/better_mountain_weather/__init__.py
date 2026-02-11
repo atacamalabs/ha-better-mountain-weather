@@ -16,8 +16,10 @@ from .const import (
     CONF_BRA_TOKEN,
     CONF_LOCATION_NAME,
     CONF_MASSIF_ID,
+    CONF_MASSIF_IDS,
     CONF_MASSIF_NAME,
     DOMAIN,
+    MASSIF_IDS,
 )
 from .coordinator import AromeCoordinator, BraCoordinator
 
@@ -112,6 +114,25 @@ async def async_migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> N
                     new_entity_id=new_entity_id,
                 )
 
+    # Remove old BRA sensors (v0.6.0 - new format includes massif_id in unique_id)
+    # Old format: location_{lat}_{lon}_mountain_weather_avalanche_*
+    # New format: location_{lat}_{lon}_mountain_weather_{massif_id}_avalanche_*
+    for entity_entry in list(entity_registry.entities.values()):
+        if entity_entry.config_entry_id == entry.entry_id:
+            # Check if this is an old BRA sensor (has avalanche_ but no massif_id in unique_id)
+            if (
+                entity_entry.unique_id
+                and "avalanche_" in entity_entry.unique_id
+                and new_entity_id_base in entity_entry.unique_id
+                # Check it's the old format (doesn't have massif_id between base and sensor type)
+                and not any(f"_{massif_id}_avalanche_" in entity_entry.unique_id for massif_id in range(1, 100))
+            ):
+                _LOGGER.info(
+                    "Removing old BRA sensor (v0.6.0 migration): %s",
+                    entity_entry.entity_id,
+                )
+                entity_registry.async_remove(entity_entry.entity_id)
+
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -132,8 +153,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     latitude = entry.data[CONF_LATITUDE]
     longitude = entry.data[CONF_LONGITUDE]
     location_name = entry.data[CONF_LOCATION_NAME]
-    massif_id = entry.data.get(CONF_MASSIF_ID)
-    massif_name = entry.data.get(CONF_MASSIF_NAME, "Unknown")
+
+    # Get massif IDs (new format) or fall back to old single massif
+    massif_ids = entry.data.get(CONF_MASSIF_IDS, [])
+    if not massif_ids and entry.data.get(CONF_MASSIF_ID):
+        # Backward compatibility: convert old single massif to list
+        massif_ids = [entry.data[CONF_MASSIF_ID]]
 
     _LOGGER.debug(
         "Setting up Better Mountain Weather for %s (%.4f, %.4f)",
@@ -180,38 +205,61 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "airquality_client": airquality_client,
     }
 
-    # Initialize BRA coordinator if token and massif are provided
-    if bra_token and massif_id:
-        _LOGGER.debug(
-            "Setting up BRA coordinator for massif %s (%s)",
-            massif_id,
-            massif_name,
-        )
-        try:
-            bra_client = BraClient(
-                api_key=bra_token,
-                massif_id=massif_id,
-            )
-            bra_coordinator = BraCoordinator(
-                hass=hass,
-                client=bra_client,
-                location_name=location_name,
-                massif_id=massif_id,
-                massif_name=massif_name,
-            )
-            # Fetch initial BRA data
-            await bra_coordinator.async_config_entry_first_refresh()
-            hass.data[DOMAIN][entry.entry_id]["bra_coordinator"] = bra_coordinator
-            hass.data[DOMAIN][entry.entry_id]["bra_client"] = bra_client
-            _LOGGER.info(
-                "Successfully set up BRA coordinator for %s",
+    # Initialize BRA coordinators for each selected massif
+    bra_coordinators = {}
+    if bra_token and massif_ids:
+        for massif_id in massif_ids:
+            # Convert string ID to int if needed (from multi-select)
+            if isinstance(massif_id, str):
+                massif_id = int(massif_id)
+
+            # Get massif name from MASSIF_IDS
+            massif_name = "Unknown"
+            if massif_id in MASSIF_IDS:
+                massif_name, _ = MASSIF_IDS[massif_id]
+
+            _LOGGER.debug(
+                "Setting up BRA coordinator for massif %s (%s)",
+                massif_id,
                 massif_name,
             )
-        except BraApiError as err:
-            _LOGGER.warning("Error setting up BRA coordinator (avalanche data unavailable): %s", err)
-            # Don't fail setup if BRA is unavailable (might be out of season)
-        except Exception as err:
-            _LOGGER.warning("Unexpected error setting up BRA coordinator: %s", err)
+            try:
+                bra_client = BraClient(
+                    api_key=bra_token,
+                    massif_id=massif_id,
+                )
+                bra_coordinator = BraCoordinator(
+                    hass=hass,
+                    client=bra_client,
+                    location_name=location_name,
+                    massif_id=massif_id,
+                    massif_name=massif_name,
+                )
+                # Fetch initial BRA data
+                await bra_coordinator.async_config_entry_first_refresh()
+                bra_coordinators[massif_id] = bra_coordinator
+                _LOGGER.info(
+                    "Successfully set up BRA coordinator for %s (ID: %s)",
+                    massif_name,
+                    massif_id,
+                )
+            except BraApiError as err:
+                _LOGGER.warning(
+                    "Error setting up BRA coordinator for %s (avalanche data unavailable): %s",
+                    massif_name,
+                    err,
+                )
+                # Don't fail setup if BRA is unavailable (might be out of season)
+            except Exception as err:
+                _LOGGER.warning(
+                    "Unexpected error setting up BRA coordinator for %s: %s",
+                    massif_name,
+                    err,
+                )
+
+    # Store BRA coordinators
+    if bra_coordinators:
+        hass.data[DOMAIN][entry.entry_id]["bra_coordinators"] = bra_coordinators
 
     # Migrate old entity IDs and remove unavailable sensors
     await async_migrate_entity_ids(hass, entry)

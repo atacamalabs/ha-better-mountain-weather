@@ -573,13 +573,13 @@ async def async_setup_entry(
             coordinator, description, location_name, latitude, longitude
         ))
 
-    # Add BRA (avalanche) sensors if coordinator exists
-    bra_coordinator = hass.data[DOMAIN][entry.entry_id].get("bra_coordinator")
-    if bra_coordinator:
-        massif_name = entry.data.get(CONF_MASSIF_NAME, "Unknown")
+    # Add BRA (avalanche) sensors for each massif
+    bra_coordinators = hass.data[DOMAIN][entry.entry_id].get("bra_coordinators", {})
+    for massif_id, bra_coordinator in bra_coordinators.items():
+        massif_name = bra_coordinator.massif_name
         for description in BRA_SENSORS:
             entities.append(BraSensor(
-                bra_coordinator, description, location_name, latitude, longitude, massif_name
+                bra_coordinator, description, location_name, latitude, longitude, massif_id, massif_name
             ))
 
     async_add_entities(entities, True)
@@ -662,6 +662,7 @@ class BraSensor(CoordinatorEntity[BraCoordinator], SensorEntity):
         location_name: str,
         latitude: float,
         longitude: float,
+        massif_id: int,
         massif_name: str,
     ) -> None:
         """Initialize the BRA sensor."""
@@ -670,6 +671,7 @@ class BraSensor(CoordinatorEntity[BraCoordinator], SensorEntity):
         self._location_name = location_name
         self._latitude = latitude
         self._longitude = longitude
+        self._massif_id = massif_id
         self._massif_name = massif_name
 
         # Format coordinates for entity_id (rounded to 2 decimals)
@@ -678,8 +680,8 @@ class BraSensor(CoordinatorEntity[BraCoordinator], SensorEntity):
         lat_str = str(lat_rounded).replace(".", "_")
         lon_str = str(lon_rounded).replace(".", "_")
 
-        # Set unique_id and entity_id base
-        self._attr_unique_id = f"location_{lat_str}_{lon_str}_mountain_weather_{description.key}"
+        # Set unique_id and entity_id base (include massif_id for uniqueness)
+        self._attr_unique_id = f"location_{lat_str}_{lon_str}_mountain_weather_{massif_id}_{description.key}"
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -690,12 +692,18 @@ class BraSensor(CoordinatorEntity[BraCoordinator], SensorEntity):
         lon_str = str(lon_rounded).replace(".", "_")
 
         return DeviceInfo(
-            identifiers={(DOMAIN, f"location_{lat_str}_{lon_str}")},
-            name=f"{self._location_name} Mountain Weather",
+            identifiers={(DOMAIN, f"location_{lat_str}_{lon_str}_massif_{self._massif_id}")},
+            name=f"{self._location_name} - {self._massif_name}",
             manufacturer=MANUFACTURER,
-            model=f"BRA Avalanche Bulletin - {self._massif_name}",
+            model=f"BRA Avalanche Bulletin",
             entry_type=DeviceEntryType.SERVICE,
         )
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        # Add massif name to sensor name
+        return f"{self.entity_description.name} - {self._massif_name}"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

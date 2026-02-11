@@ -14,6 +14,7 @@ CONF_BRA_TOKEN: Final = "bra_token"
 CONF_LOCATION_NAME: Final = "location_name"
 CONF_MASSIF_ID: Final = "massif_id"
 CONF_MASSIF_NAME: Final = "massif_name"
+CONF_MASSIF_IDS: Final = "massif_ids"
 
 # Update intervals
 AROME_UPDATE_INTERVAL: Final = timedelta(hours=1)

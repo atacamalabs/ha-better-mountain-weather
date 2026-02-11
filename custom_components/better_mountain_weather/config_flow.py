@@ -16,10 +16,8 @@ from .api.openmeteo_client import OpenMeteoClient, OpenMeteoApiError
 from .const import (
     CONF_BRA_TOKEN,
     CONF_LOCATION_NAME,
-    CONF_MASSIF_ID,
-    CONF_MASSIF_NAME,
+    CONF_MASSIF_IDS,
     DOMAIN,
-    MASSIFS,
     MASSIF_IDS,
 )
 
@@ -77,72 +75,72 @@ class BetterMountainWeatherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step - collect GPS coordinates."""
+        """Handle the initial step - collect location details."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             latitude = user_input[CONF_LATITUDE]
             longitude = user_input[CONF_LONGITUDE]
+            location_name = user_input[CONF_LOCATION_NAME].strip()
+
+            # Validate location name is not empty
+            if not location_name:
+                errors[CONF_LOCATION_NAME] = "required"
 
             # Validate location and get forecast information
-            try:
-                _LOGGER.debug(
-                    "Validating location: lat=%s, lon=%s",
-                    latitude,
-                    longitude,
-                )
+            if not errors:
+                try:
+                    _LOGGER.debug(
+                        "Validating location: lat=%s, lon=%s, name=%s",
+                        latitude,
+                        longitude,
+                        location_name,
+                    )
 
-                # Initialize Open-Meteo client (no authentication needed)
-                client = OpenMeteoClient(latitude=latitude, longitude=longitude)
-                _LOGGER.debug("OpenMeteoClient initialized successfully")
+                    # Initialize Open-Meteo client (no authentication needed)
+                    client = OpenMeteoClient(latitude=latitude, longitude=longitude)
+                    _LOGGER.debug("OpenMeteoClient initialized successfully")
 
-                # Test coordinates by fetching current weather
-                _LOGGER.debug("Fetching weather for coordinates...")
-                current = await client.async_get_current_weather()
-                _LOGGER.debug("Weather data retrieved successfully")
+                    # Test coordinates by fetching current weather
+                    _LOGGER.debug("Fetching weather for coordinates...")
+                    current = await client.async_get_current_weather()
+                    _LOGGER.debug("Weather data retrieved successfully")
 
-                # Use coordinates as location name
-                location_name = f"Location {latitude:.2f}, {longitude:.2f}"
+                    # Store location data
+                    self._data[CONF_LATITUDE] = latitude
+                    self._data[CONF_LONGITUDE] = longitude
+                    self._data[CONF_LOCATION_NAME] = location_name
 
-                # Store location data
-                self._data[CONF_LATITUDE] = latitude
-                self._data[CONF_LONGITUDE] = longitude
-                self._data[CONF_LOCATION_NAME] = location_name
+                    # Store selected massifs (can be empty list)
+                    selected_massifs = user_input.get(CONF_MASSIF_IDS, [])
+                    self._data[CONF_MASSIF_IDS] = selected_massifs
 
-                # Find nearest massif for BRA (avalanche bulletins)
-                massif_text_id, massif_name = _find_nearest_massif(latitude, longitude)
-                # Find numeric ID for this massif
-                massif_numeric_id = None
-                for num_id, (name, text_id) in MASSIF_IDS.items():
-                    if text_id == massif_text_id:
-                        massif_numeric_id = num_id
-                        break
+                    # Store BRA token if provided (optional)
+                    if user_input.get(CONF_BRA_TOKEN):
+                        self._data[CONF_BRA_TOKEN] = user_input[CONF_BRA_TOKEN]
 
-                self._data[CONF_MASSIF_ID] = massif_numeric_id
-                self._data[CONF_MASSIF_NAME] = massif_name
+                    # Create the config entry
+                    await self.async_set_unique_id(
+                        f"{latitude}_{longitude}"
+                    )
+                    self._abort_if_unique_id_configured()
 
-                # Store BRA token if provided (optional)
-                if user_input.get(CONF_BRA_TOKEN):
-                    self._data[CONF_BRA_TOKEN] = user_input[CONF_BRA_TOKEN]
+                    return self.async_create_entry(
+                        title=location_name,
+                        data=self._data,
+                    )
 
-                # Create the config entry
-                await self.async_set_unique_id(
-                    f"{latitude}_{longitude}"
-                )
-                self._abort_if_unique_id_configured()
+                except Exception as err:
+                    _LOGGER.error("Error validating location: %s", err, exc_info=True)
+                    errors["base"] = "cannot_connect"
 
-                return self.async_create_entry(
-                    title=location_name,
-                    data=self._data,
-                )
-
-            except Exception as err:
-                _LOGGER.error("Error validating location: %s", err, exc_info=True)
-                errors["base"] = "cannot_connect"
+        # Create massif options for multi-select
+        massif_options = {str(num_id): name for num_id, (name, _) in MASSIF_IDS.items()}
 
         # Show the form with default values from HA configuration
         data_schema = vol.Schema(
             {
+                vol.Required(CONF_LOCATION_NAME): str,
                 vol.Required(
                     CONF_LATITUDE,
                     default=self.hass.config.latitude
@@ -155,6 +153,10 @@ class BetterMountainWeatherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_BRA_TOKEN,
                     description="Météo-France API key for avalanche bulletins (optional)"
                 ): str,
+                vol.Optional(
+                    CONF_MASSIF_IDS,
+                    description="Select massifs for avalanche bulletins (requires BRA token)"
+                ): cv.multi_select(massif_options),
             }
         )
 
@@ -163,6 +165,6 @@ class BetterMountainWeatherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=data_schema,
             errors=errors,
             description_placeholders={
-                "location_info": "Enter GPS coordinates. Optional: Add Météo-France API key for avalanche data.",
+                "location_info": "Enter location name and GPS coordinates. Optional: Add Météo-France API key and select massifs for avalanche data.",
             },
         )

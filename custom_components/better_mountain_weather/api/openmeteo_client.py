@@ -76,8 +76,11 @@ class OpenMeteoClient:
                         "timestamp": current.get("time"),
                     }
 
+        except aiohttp.ClientError as err:
+            _LOGGER.error("Network error getting current weather: %s", err)
+            raise OpenMeteoApiError(f"Failed to get current weather (network): {err}") from err
         except Exception as err:
-            _LOGGER.error("Error getting current weather: %s", err)
+            _LOGGER.error("Error getting current weather: %s (type: %s)", err, type(err).__name__)
             raise OpenMeteoApiError(f"Failed to get current weather: {err}") from err
 
     async def async_get_daily_forecast(self) -> list[dict[str, Any]]:

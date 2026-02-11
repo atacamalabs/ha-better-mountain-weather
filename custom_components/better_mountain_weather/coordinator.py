@@ -53,24 +53,47 @@ class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             UpdateFailed: If update fails
         """
         try:
+            import asyncio
+
             _LOGGER.debug("Updating weather data for %s", self.location_name)
 
-            # Fetch all data in parallel where possible
-            current_weather = await self.client.async_get_current_weather()
-            daily_forecast = await self.client.async_get_daily_forecast()
-            hourly_forecast = await self.client.async_get_hourly_forecast()
-            hourly_6h = await self.client.async_get_hourly_6h()
-            additional_data = await self.client.async_get_additional_data()
+            # Fetch all data in parallel for better performance
+            tasks = [
+                self.client.async_get_current_weather(),
+                self.client.async_get_daily_forecast(),
+                self.client.async_get_hourly_forecast(),
+                self.client.async_get_hourly_6h(),
+                self.client.async_get_additional_data(),
+            ]
 
-            # Fetch air quality data if client is available
-            air_quality_data = {}
+            # Add air quality task if client is available
             if self.airquality_client:
-                try:
-                    air_quality_data = await self.airquality_client.async_get_air_quality()
+                tasks.append(self.airquality_client.async_get_air_quality())
+
+            # Execute all API calls in parallel
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Unpack results
+            current_weather = results[0] if not isinstance(results[0], Exception) else {}
+            daily_forecast = results[1] if not isinstance(results[1], Exception) else []
+            hourly_forecast = results[2] if not isinstance(results[2], Exception) else []
+            hourly_6h = results[3] if not isinstance(results[3], Exception) else []
+            additional_data = results[4] if not isinstance(results[4], Exception) else {}
+
+            # Handle air quality data
+            air_quality_data = {}
+            if self.airquality_client and len(results) > 5:
+                if isinstance(results[5], Exception):
+                    _LOGGER.warning("Error fetching air quality data for %s: %s", self.location_name, results[5])
+                else:
+                    air_quality_data = results[5]
                     _LOGGER.debug("Successfully fetched air quality data for %s", self.location_name)
-                except AirQualityApiError as err:
-                    _LOGGER.warning("Error fetching air quality data for %s: %s", self.location_name, err)
-                    # Continue without air quality data if it fails
+
+            # Check for critical errors
+            if isinstance(results[0], Exception):
+                raise UpdateFailed(f"Failed to get current weather: {results[0]}") from results[0]
+            if isinstance(results[1], Exception):
+                raise UpdateFailed(f"Failed to get daily forecast: {results[1]}") from results[1]
 
             # Combine all data
             data = {

@@ -32,8 +32,17 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     ATTRIBUTION,
     CONF_LOCATION_NAME,
+    CONF_MASSIF_NAME,
     DOMAIN,
     MANUFACTURER,
+    SENSOR_TYPE_AVALANCHE_ACCIDENTAL,
+    SENSOR_TYPE_AVALANCHE_BULLETIN_DATE,
+    SENSOR_TYPE_AVALANCHE_NATURAL,
+    SENSOR_TYPE_AVALANCHE_RISK_HIGH_ALT,
+    SENSOR_TYPE_AVALANCHE_RISK_LOW_ALT,
+    SENSOR_TYPE_AVALANCHE_RISK_TODAY,
+    SENSOR_TYPE_AVALANCHE_RISK_TOMORROW,
+    SENSOR_TYPE_AVALANCHE_SUMMARY,
     SENSOR_TYPE_CLOUD_COVERAGE,
     SENSOR_TYPE_ELEVATION,
     SENSOR_TYPE_EUROPEAN_AQI,
@@ -53,7 +62,7 @@ from .const import (
     SENSOR_TYPE_SHOWERS_CURRENT,
     SENSOR_TYPE_SNOWFALL_CURRENT,
 )
-from .coordinator import AromeCoordinator
+from .coordinator import AromeCoordinator, BraCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -424,6 +433,78 @@ def _create_daily_sensors() -> tuple[BetterMountainWeatherSensorDescription, ...
 DAILY_SENSORS = _create_daily_sensors()
 
 
+# BRA (Avalanche Bulletin) Sensors
+BRA_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_AVALANCHE_RISK_TODAY,
+        name="Avalanche Risk Today",
+        icon="mdi:alert-octagon",
+        value_fn=lambda data: data.get("risk_max"),
+        extra_attributes_fn=lambda data: {
+            "risk_comment": data.get("risk_comment"),
+            "warning": data.get("warning"),
+        } if data.get("has_data") else {},
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_AVALANCHE_RISK_TOMORROW,
+        name="Avalanche Risk Tomorrow",
+        icon="mdi:alert-octagon-outline",
+        value_fn=lambda data: data.get("risk_max_j2"),
+        extra_attributes_fn=lambda data: {
+            "date": data.get("date_risk_j2"),
+            "risk_text": data.get("risk_j2_text"),
+            "comment": data.get("risk_j2_comment"),
+        } if data.get("has_data") else {},
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_AVALANCHE_ACCIDENTAL,
+        name="Avalanche Accidental Risk",
+        icon="mdi:skiing",
+        value_fn=lambda data: data.get("accidental_text") if data.get("has_data") else None,
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_AVALANCHE_NATURAL,
+        name="Avalanche Natural Risk",
+        icon="mdi:landslide",
+        value_fn=lambda data: data.get("natural_text") if data.get("has_data") else None,
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_AVALANCHE_SUMMARY,
+        name="Avalanche Risk Summary",
+        icon="mdi:text-box-multiple",
+        value_fn=lambda data: data.get("summary") if data.get("has_data") else None,
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_AVALANCHE_BULLETIN_DATE,
+        name="Avalanche Bulletin Date",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        icon="mdi:calendar-clock",
+        value_fn=lambda data: datetime.fromisoformat(data.get("bulletin_date")) if data.get("has_data") and data.get("bulletin_date") else None,
+        extra_attributes_fn=lambda data: {
+            "massif": data.get("massif_name"),
+        } if data.get("has_data") else {},
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_AVALANCHE_RISK_HIGH_ALT,
+        name="Avalanche Risk High Altitude",
+        icon="mdi:image-filter-hdr",
+        value_fn=lambda data: data.get("risk_high_altitude") if data.get("has_data") else None,
+        extra_attributes_fn=lambda data: {
+            "altitude_limit": data.get("altitude_limit"),
+        } if data.get("has_data") and data.get("altitude_limit") else {},
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_AVALANCHE_RISK_LOW_ALT,
+        name="Avalanche Risk Low Altitude",
+        icon="mdi:terrain",
+        value_fn=lambda data: data.get("risk_low_altitude") if data.get("has_data") else None,
+        extra_attributes_fn=lambda data: {
+            "altitude_limit": data.get("altitude_limit"),
+        } if data.get("has_data") and data.get("altitude_limit") else {},
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -467,6 +548,15 @@ async def async_setup_entry(
         entities.append(BetterMountainWeatherSensor(
             coordinator, description, location_name, latitude, longitude
         ))
+
+    # Add BRA (avalanche) sensors if coordinator exists
+    bra_coordinator = hass.data[DOMAIN][entry.entry_id].get("bra_coordinator")
+    if bra_coordinator:
+        massif_name = entry.data.get(CONF_MASSIF_NAME, "Unknown")
+        for description in BRA_SENSORS:
+            entities.append(BraSensor(
+                bra_coordinator, description, location_name, latitude, longitude, massif_name
+            ))
 
     async_add_entities(entities, True)
 
@@ -532,3 +622,98 @@ class BetterMountainWeatherSensor(CoordinatorEntity[AromeCoordinator], SensorEnt
         """Return if entity is available."""
         # Sensor is available if coordinator has data and value is not None
         return self.coordinator.last_update_success and self.native_value is not None
+
+
+class BraSensor(CoordinatorEntity[BraCoordinator], SensorEntity):
+    """Sensor entity for BRA avalanche bulletins."""
+
+    entity_description: BetterMountainWeatherSensorDescription
+    _attr_has_entity_name = True
+    _attr_attribution = "Data from Météo-France BRA"
+
+    def __init__(
+        self,
+        coordinator: BraCoordinator,
+        description: BetterMountainWeatherSensorDescription,
+        location_name: str,
+        latitude: float,
+        longitude: float,
+        massif_name: str,
+    ) -> None:
+        """Initialize the BRA sensor."""
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._location_name = location_name
+        self._latitude = latitude
+        self._longitude = longitude
+        self._massif_name = massif_name
+
+        # Format coordinates for entity_id (rounded to 2 decimals)
+        lat_rounded = round(latitude, 2)
+        lon_rounded = round(longitude, 2)
+        lat_str = str(lat_rounded).replace(".", "_")
+        lon_str = str(lon_rounded).replace(".", "_")
+
+        # Set unique_id and entity_id base
+        self._attr_unique_id = f"location_{lat_str}_{lon_str}_mountain_weather_{description.key}"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        lat_rounded = round(self._latitude, 2)
+        lon_rounded = round(self._longitude, 2)
+        lat_str = str(lat_rounded).replace(".", "_")
+        lon_str = str(lon_rounded).replace(".", "_")
+
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"location_{lat_str}_{lon_str}")},
+            name=f"{self._location_name} Mountain Weather",
+            manufacturer=MANUFACTURER,
+            model=f"BRA Avalanche Bulletin - {self._massif_name}",
+            entry_type=DeviceEntryType.SERVICE,
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        if not self.coordinator.data or not self.coordinator.data.get("has_data"):
+            return {}
+
+        # Get base attributes from description
+        if hasattr(self.entity_description, "extra_attributes_fn"):
+            attrs = self.entity_description.extra_attributes_fn(self.coordinator.data)
+            if attrs:
+                return attrs
+
+        return {}
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data:
+            return None
+
+        # Check if data is available
+        if not self.coordinator.data.get("has_data"):
+            return None
+
+        value = self.entity_description.value_fn(self.coordinator.data)
+
+        # Handle datetime objects
+        if isinstance(value, datetime):
+            return value
+
+        return value
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        # BRA sensor is available if coordinator succeeded and has data
+        if not self.coordinator.last_update_success:
+            return False
+
+        # If data exists but has_data is False (out of season), mark unavailable
+        if self.coordinator.data and not self.coordinator.data.get("has_data"):
+            return False
+
+        return True

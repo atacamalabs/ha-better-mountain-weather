@@ -14,11 +14,13 @@ import homeassistant.helpers.config_validation as cv
 
 from .api.openmeteo_client import OpenMeteoClient, OpenMeteoApiError
 from .const import (
+    CONF_BRA_TOKEN,
     CONF_LOCATION_NAME,
     CONF_MASSIF_ID,
     CONF_MASSIF_NAME,
     DOMAIN,
     MASSIFS,
+    MASSIF_IDS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -107,10 +109,21 @@ class BetterMountainWeatherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._data[CONF_LONGITUDE] = longitude
                 self._data[CONF_LOCATION_NAME] = location_name
 
-                # Find nearest massif for Phase 2
-                massif_id, massif_name = _find_nearest_massif(latitude, longitude)
-                self._data[CONF_MASSIF_ID] = massif_id
+                # Find nearest massif for BRA (avalanche bulletins)
+                massif_text_id, massif_name = _find_nearest_massif(latitude, longitude)
+                # Find numeric ID for this massif
+                massif_numeric_id = None
+                for num_id, (name, text_id) in MASSIF_IDS.items():
+                    if text_id == massif_text_id:
+                        massif_numeric_id = num_id
+                        break
+
+                self._data[CONF_MASSIF_ID] = massif_numeric_id
                 self._data[CONF_MASSIF_NAME] = massif_name
+
+                # Store BRA token if provided (optional)
+                if user_input.get(CONF_BRA_TOKEN):
+                    self._data[CONF_BRA_TOKEN] = user_input[CONF_BRA_TOKEN]
 
                 # Create the config entry
                 await self.async_set_unique_id(
@@ -138,6 +151,10 @@ class BetterMountainWeatherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_LONGITUDE,
                     default=self.hass.config.longitude
                 ): cv.longitude,
+                vol.Optional(
+                    CONF_BRA_TOKEN,
+                    description="Météo-France API key for avalanche bulletins (optional)"
+                ): str,
             }
         )
 
@@ -146,6 +163,6 @@ class BetterMountainWeatherConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=data_schema,
             errors=errors,
             description_placeholders={
-                "location_info": "Enter GPS coordinates for your mountain location",
+                "location_info": "Enter GPS coordinates. Optional: Add Météo-France API key for avalanche data.",
             },
         )

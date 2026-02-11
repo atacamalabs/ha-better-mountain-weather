@@ -29,7 +29,23 @@ DEFAULT_NAME: Final = "Better Mountain Weather"
 ATTRIBUTION: Final = "Data from Open-Meteo (Météo-France AROME & ARPEGE models)"
 MANUFACTURER: Final = "Météo-France"
 
-# French Alps and Pyrenees Massifs
+# French Alps and Pyrenees Massifs - Numeric IDs for BRA API
+# Format: numeric_id -> (Name, Text ID)
+MASSIF_IDS: Final = {
+    # Haute-Savoie (primary focus)
+    1: ("Chablais", "CHABLAIS"),
+    2: ("Aravis", "ARAVIS"),
+    3: ("Mont-Blanc", "MONT-BLANC"),
+    # Other Savoie massifs
+    4: ("Bauges", "BAUGES"),
+    5: ("Beaufortain", "BEAUFORTAIN"),
+    6: ("Haute-Tarentaise", "HAUTE-TARENTAISE"),
+    9: ("Maurienne", "MAURIENNE"),
+    10: ("Vanoise", "VANOISE"),
+    11: ("Haute-Maurienne", "HAUTE-MAURIENNE"),
+}
+
+# French Alps and Pyrenees Massifs - For distance calculation
 # Format: ID -> (Name, Approximate center latitude, center longitude)
 MASSIFS: Final = {
     # Alps (23 massifs)
@@ -150,12 +166,12 @@ SENSOR_TYPE_SNOWFALL_SUM_DAY2: Final = "snowfall_sum_day2"
 SENSOR_TYPE_PRECIPITATION_SUM_DAY2: Final = "precipitation_sum_day2"
 SENSOR_TYPE_PRECIPITATION_HOURS_DAY2: Final = "precipitation_hours_day2"
 
-# Sensor types for BRA (Phase 2)
-SENSOR_TYPE_AVALANCHE_RISK: Final = "avalanche_risk"
-SENSOR_TYPE_RISK_TREND: Final = "risk_trend"
-SENSOR_TYPE_SNOWPACK_QUALITY: Final = "snowpack_quality"
-SENSOR_TYPE_RECENT_SNOW: Final = "recent_snow"
-SENSOR_TYPE_RISK_ALTITUDE_HIGH: Final = "risk_altitude_high"
-SENSOR_TYPE_RISK_ALTITUDE_LOW: Final = "risk_altitude_low"
-SENSOR_TYPE_WIND_TRANSPORT_RISK: Final = "wind_transport_risk"
-SENSOR_TYPE_WET_SNOW_RISK: Final = "wet_snow_risk"
+# Sensor types for BRA (Avalanche Bulletins)
+SENSOR_TYPE_AVALANCHE_RISK_TODAY: Final = "avalanche_risk_today"
+SENSOR_TYPE_AVALANCHE_RISK_TOMORROW: Final = "avalanche_risk_tomorrow"
+SENSOR_TYPE_AVALANCHE_ACCIDENTAL: Final = "avalanche_accidental"
+SENSOR_TYPE_AVALANCHE_NATURAL: Final = "avalanche_natural"
+SENSOR_TYPE_AVALANCHE_SUMMARY: Final = "avalanche_summary"
+SENSOR_TYPE_AVALANCHE_BULLETIN_DATE: Final = "avalanche_bulletin_date"
+SENSOR_TYPE_AVALANCHE_RISK_HIGH_ALT: Final = "avalanche_risk_high_altitude"
+SENSOR_TYPE_AVALANCHE_RISK_LOW_ALT: Final = "avalanche_risk_low_altitude"

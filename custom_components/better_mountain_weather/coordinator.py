@@ -9,8 +9,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api.airquality_client import AirQualityApiError, AirQualityClient
+from .api.bra_client import BraApiError, BraClient
 from .api.openmeteo_client import OpenMeteoApiError, OpenMeteoClient
-from .const import AROME_UPDATE_INTERVAL, DOMAIN
+from .const import AROME_UPDATE_INTERVAL, BRA_UPDATE_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -128,41 +129,38 @@ class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
 
 class BraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Coordinator for BRA avalanche bulletin updates.
-
-    This will be implemented in Phase 2.
-    """
+    """Coordinator for BRA avalanche bulletin updates."""
 
     def __init__(
         self,
         hass: HomeAssistant,
-        # client: BraClient,  # Phase 2
+        client: BraClient,
         location_name: str,
-        massif_id: str,
+        massif_id: int,
+        massif_name: str,
     ) -> None:
         """Initialize the BRA coordinator.
 
         Args:
             hass: Home Assistant instance
+            client: BRA API client
             location_name: Name of the location for logging
-            massif_id: ID of the massif
+            massif_id: Numeric ID of the massif
+            massif_name: Name of the massif
         """
-        from .const import BRA_UPDATE_INTERVAL
-
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN}_{location_name}_bra",
             update_interval=BRA_UPDATE_INTERVAL,
         )
-        # self.client = client  # Phase 2
+        self.client = client
         self.location_name = location_name
         self.massif_id = massif_id
+        self.massif_name = massif_name
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from BRA API.
-
-        This will be implemented in Phase 2.
 
         Returns:
             Dictionary containing BRA avalanche data
@@ -170,6 +168,40 @@ class BraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Raises:
             UpdateFailed: If update fails
         """
-        # Phase 2: Implement BRA data fetching
-        _LOGGER.debug("BRA coordinator not yet implemented (Phase 2)")
-        return {}
+        try:
+            _LOGGER.debug(
+                "Updating BRA data for %s (massif %s - %s)",
+                self.location_name,
+                self.massif_id,
+                self.massif_name,
+            )
+
+            # Fetch bulletin data
+            bulletin_data = await self.client.async_get_bulletin()
+
+            if not bulletin_data.get("has_data"):
+                _LOGGER.warning(
+                    "No BRA data available for massif %s - may be out of season",
+                    self.massif_id,
+                )
+                return {"has_data": False}
+
+            _LOGGER.debug(
+                "Successfully updated BRA data for %s: risk_today=%s, risk_tomorrow=%s",
+                self.location_name,
+                bulletin_data.get("risk_max"),
+                bulletin_data.get("risk_max_j2"),
+            )
+
+            return bulletin_data
+
+        except BraApiError as err:
+            _LOGGER.error("Error fetching BRA data for %s: %s", self.location_name, err)
+            raise UpdateFailed(f"Error fetching BRA data: {err}") from err
+        except Exception as err:
+            _LOGGER.error(
+                "Unexpected error fetching BRA data for %s: %s",
+                self.location_name,
+                err,
+            )
+            raise UpdateFailed(f"Unexpected error: {err}") from err

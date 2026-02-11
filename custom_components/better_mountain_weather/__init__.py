@@ -10,14 +10,16 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er
 
 from .api.airquality_client import AirQualityClient
+from .api.bra_client import BraApiError, BraClient
 from .api.openmeteo_client import OpenMeteoApiError, OpenMeteoClient
 from .const import (
     CONF_BRA_TOKEN,
     CONF_LOCATION_NAME,
     CONF_MASSIF_ID,
+    CONF_MASSIF_NAME,
     DOMAIN,
 )
-from .coordinator import AromeCoordinator
+from .coordinator import AromeCoordinator, BraCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -131,6 +133,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     longitude = entry.data[CONF_LONGITUDE]
     location_name = entry.data[CONF_LOCATION_NAME]
     massif_id = entry.data.get(CONF_MASSIF_ID)
+    massif_name = entry.data.get(CONF_MASSIF_NAME, "Unknown")
 
     _LOGGER.debug(
         "Setting up Better Mountain Weather for %s (%.4f, %.4f)",
@@ -177,13 +180,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "airquality_client": airquality_client,
     }
 
-    # BRA coordinator will be added in Phase 2
-    # if bra_token and massif_id:
-    #     bra_client = BraClient(...)
-    #     bra_coordinator = BraCoordinator(...)
-    #     await bra_coordinator.async_config_entry_first_refresh()
-    #     hass.data[DOMAIN][entry.entry_id]["bra_coordinator"] = bra_coordinator
-    #     hass.data[DOMAIN][entry.entry_id]["bra_client"] = bra_client
+    # Initialize BRA coordinator if token and massif are provided
+    if bra_token and massif_id:
+        _LOGGER.debug(
+            "Setting up BRA coordinator for massif %s (%s)",
+            massif_id,
+            massif_name,
+        )
+        try:
+            bra_client = BraClient(
+                api_key=bra_token,
+                massif_id=massif_id,
+            )
+            bra_coordinator = BraCoordinator(
+                hass=hass,
+                client=bra_client,
+                location_name=location_name,
+                massif_id=massif_id,
+                massif_name=massif_name,
+            )
+            # Fetch initial BRA data
+            await bra_coordinator.async_config_entry_first_refresh()
+            hass.data[DOMAIN][entry.entry_id]["bra_coordinator"] = bra_coordinator
+            hass.data[DOMAIN][entry.entry_id]["bra_client"] = bra_client
+            _LOGGER.info(
+                "Successfully set up BRA coordinator for %s",
+                massif_name,
+            )
+        except BraApiError as err:
+            _LOGGER.warning("Error setting up BRA coordinator (avalanche data unavailable): %s", err)
+            # Don't fail setup if BRA is unavailable (might be out of season)
+        except Exception as err:
+            _LOGGER.warning("Unexpected error setting up BRA coordinator: %s", err)
 
     # Migrate old entity IDs and remove unavailable sensors
     await async_migrate_entity_ids(hass, entry)

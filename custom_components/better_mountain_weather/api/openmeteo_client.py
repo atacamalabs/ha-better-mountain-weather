@@ -123,7 +123,7 @@ class OpenMeteoClient:
             raise OpenMeteoApiError(f"Failed to get daily forecast: {err}") from err
 
     async def async_get_hourly_forecast(self) -> list[dict[str, Any]]:
-        """Get hourly forecast for 48 hours.
+        """Get hourly forecast for 48 hours (future hours only).
 
         Returns:
             List of hourly forecast dictionaries
@@ -149,20 +149,39 @@ class OpenMeteoClient:
                     hourly_forecasts = []
 
                     times = hourly.get("time", [])
-                    for i in range(min(48, len(times))):  # Limit to 48 hours
+
+                    # Get current time for comparison
+                    # Parse first datetime to get timezone info
+                    if not times:
+                        return []
+
+                    first_dt = datetime.fromisoformat(times[0])
+                    # Use the same timezone as the forecast data
+                    if first_dt.tzinfo:
+                        now = datetime.now(tz=first_dt.tzinfo)
+                    else:
+                        now = datetime.now()
+
+                    for i in range(len(times)):
                         dt = datetime.fromisoformat(times[i])
 
-                        hourly_forecasts.append({
-                            "datetime": dt,  # Keep as datetime for processing
-                            "temperature": hourly["temperature_2m"][i],
-                            "precipitation": hourly["precipitation"][i],
-                            "precipitation_probability": None,  # Not in hourly
-                            "condition": self._map_weather_code(hourly.get("weather_code", [None])[i]),
-                            "wind_speed": hourly["wind_speed_10m"][i],
-                            "wind_gust_speed": hourly["wind_gusts_10m"][i],
-                            "wind_bearing": hourly["wind_direction_10m"][i],
-                            "cloud_coverage": hourly.get("cloud_cover", [None])[i],
-                        })
+                        # Only include future hours
+                        if dt > now:
+                            hourly_forecasts.append({
+                                "datetime": dt,  # Keep as datetime for processing
+                                "temperature": hourly["temperature_2m"][i],
+                                "precipitation": hourly["precipitation"][i],
+                                "precipitation_probability": None,  # Not in hourly
+                                "condition": self._map_weather_code(hourly.get("weather_code", [None])[i]),
+                                "wind_speed": hourly["wind_speed_10m"][i],
+                                "wind_gust_speed": hourly["wind_gusts_10m"][i],
+                                "wind_bearing": hourly["wind_direction_10m"][i],
+                                "cloud_coverage": hourly.get("cloud_cover", [None])[i],
+                            })
+
+                            # Stop after collecting 48 future hours
+                            if len(hourly_forecasts) >= 48:
+                                break
 
                     return hourly_forecasts
 

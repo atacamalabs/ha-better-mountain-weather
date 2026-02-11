@@ -186,20 +186,99 @@ class BetterMountainWeather(CoordinatorEntity[AromeCoordinator], WeatherEntity):
         if not self.coordinator.data:
             return {}
 
+        # Base attributes
+        elevation = self.coordinator.data.get("elevation")
         attrs = {
-            "elevation": self.coordinator.data.get("elevation"),
+            "elevation": f"{elevation}m" if elevation is not None else None,
             "latitude": self._latitude,
             "longitude": self._longitude,
             "location_name": self._location_name,
         }
 
-        # Add sunrise/sunset from today's forecast
+        # Add current weather data
+        current = self.coordinator.data.get("current", {})
+        if current:
+            temp = current.get("temperature")
+            attrs["current_temperature"] = f"{temp}°C" if temp is not None else None
+
+            humidity = current.get("humidity")
+            attrs["current_humidity"] = f"{humidity}%" if humidity is not None else None
+
+            attrs["current_is_day"] = "day" if current.get("is_day") else "night"
+
+            wind_speed = current.get("wind_speed")
+            attrs["current_wind_speed"] = f"{wind_speed}km/h" if wind_speed is not None else None
+
+            wind_bearing = current.get("wind_bearing")
+            attrs["current_wind_direction"] = f"{wind_bearing}°" if wind_bearing is not None else None
+
+            wind_gust = current.get("wind_gust")
+            attrs["current_wind_gust"] = f"{wind_gust}km/h" if wind_gust is not None else None
+
+            precip = current.get("precipitation")
+            attrs["current_precipitation"] = f"{precip}mm" if precip is not None else None
+
+            rain = current.get("rain")
+            attrs["current_rain"] = f"{rain}mm" if rain is not None else None
+
+            showers = current.get("showers")
+            attrs["current_showers"] = f"{showers}mm" if showers is not None else None
+
+            snowfall = current.get("snowfall")
+            attrs["current_snowfall"] = f"{snowfall}cm" if snowfall is not None else None
+
+            cloud = current.get("cloud_coverage")
+            attrs["current_cloud_coverage"] = f"{cloud}%" if cloud is not None else None
+
+        # Add daily data for days 0, 1, 2
         daily_forecast = self.coordinator.data.get("daily_forecast", [])
-        if daily_forecast and len(daily_forecast) > 0:
-            if sunrise := daily_forecast[0].get("sunrise"):
-                attrs["sunrise"] = sunrise.isoformat()
-            if sunset := daily_forecast[0].get("sunset"):
-                attrs["sunset"] = sunset.isoformat()
+        day_names = ["today", "tomorrow", "day_2"]
+
+        for day_idx in range(min(3, len(daily_forecast))):
+            day_data = daily_forecast[day_idx]
+            day_name = day_names[day_idx]
+
+            # Wind
+            wind_speed = day_data.get("wind_speed")
+            attrs[f"{day_name}_wind_speed_max"] = f"{wind_speed}km/h" if wind_speed is not None else None
+
+            wind_gust = day_data.get("wind_gust_speed")
+            attrs[f"{day_name}_wind_gust_max"] = f"{wind_gust}km/h" if wind_gust is not None else None
+
+            wind_bearing = day_data.get("wind_bearing")
+            attrs[f"{day_name}_wind_direction"] = f"{wind_bearing}°" if wind_bearing is not None else None
+
+            # Sun times
+            if sunrise := day_data.get("sunrise"):
+                attrs[f"{day_name}_sunrise"] = sunrise.isoformat()
+            if sunset := day_data.get("sunset"):
+                attrs[f"{day_name}_sunset"] = sunset.isoformat()
+
+            # Sun duration
+            sunshine = day_data.get("sunshine_duration")
+            attrs[f"{day_name}_sunshine_duration"] = f"{sunshine / 3600:.1f}h" if sunshine is not None else None
+
+            daylight = day_data.get("daylight_duration")
+            attrs[f"{day_name}_daylight_duration"] = f"{daylight / 3600:.1f}h" if daylight is not None else None
+
+            # UV index
+            attrs[f"{day_name}_uv_index"] = day_data.get("uv_index")
+
+            # Precipitation
+            rain_sum = day_data.get("rain_sum")
+            attrs[f"{day_name}_rain_sum"] = f"{rain_sum}mm" if rain_sum is not None else None
+
+            showers = day_data.get("showers_sum")
+            attrs[f"{day_name}_showers_sum"] = f"{showers}mm" if showers is not None else None
+
+            snow_sum = day_data.get("snowfall_sum")
+            attrs[f"{day_name}_snowfall_sum"] = f"{snow_sum}cm" if snow_sum is not None else None
+
+            precip_sum = day_data.get("precipitation_sum")
+            attrs[f"{day_name}_precipitation_sum"] = f"{precip_sum}mm" if precip_sum is not None else None
+
+            precip_hours = day_data.get("precipitation_hours")
+            attrs[f"{day_name}_precipitation_hours"] = f"{precip_hours}h" if precip_hours is not None else None
 
         # Add hourly forecast for next 6 hours
         hourly_6h = self.coordinator.data.get("hourly_6h", [])

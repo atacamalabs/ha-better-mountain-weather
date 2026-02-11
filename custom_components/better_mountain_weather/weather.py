@@ -175,7 +175,10 @@ class BetterMountainWeather(CoordinatorEntity[AromeCoordinator], WeatherEntity):
         """Return the current UV index."""
         if not self.coordinator.data:
             return None
-        return self.coordinator.data.get("uv_index")
+        daily_forecast = self.coordinator.data.get("daily_forecast", [])
+        if daily_forecast and len(daily_forecast) > 0:
+            return daily_forecast[0].get("uv_index")
+        return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -190,11 +193,46 @@ class BetterMountainWeather(CoordinatorEntity[AromeCoordinator], WeatherEntity):
             "location_name": self._location_name,
         }
 
-        # Add sunrise/sunset if available
-        if sunrise := self.coordinator.data.get("sunrise"):
-            attrs["sunrise"] = sunrise.isoformat()
-        if sunset := self.coordinator.data.get("sunset"):
-            attrs["sunset"] = sunset.isoformat()
+        # Add sunrise/sunset from today's forecast
+        daily_forecast = self.coordinator.data.get("daily_forecast", [])
+        if daily_forecast and len(daily_forecast) > 0:
+            if sunrise := daily_forecast[0].get("sunrise"):
+                attrs["sunrise"] = sunrise.isoformat()
+            if sunset := daily_forecast[0].get("sunset"):
+                attrs["sunset"] = sunset.isoformat()
+
+        # Add hourly forecast for next 6 hours
+        hourly_6h = self.coordinator.data.get("hourly_6h", [])
+        for i, hour_data in enumerate(hourly_6h, start=1):
+            prefix = f"hour_{i}"
+            attrs[f"{prefix}_datetime"] = hour_data.get("datetime").isoformat() if hour_data.get("datetime") else None
+            attrs[f"{prefix}_temperature"] = hour_data.get("temperature")
+            attrs[f"{prefix}_wind_speed"] = hour_data.get("wind_speed")
+            attrs[f"{prefix}_wind_gust"] = hour_data.get("wind_gust")
+            attrs[f"{prefix}_cloud_cover"] = hour_data.get("cloud_cover")
+            attrs[f"{prefix}_snowfall"] = hour_data.get("snowfall")
+            attrs[f"{prefix}_rain"] = hour_data.get("rain")
+            attrs[f"{prefix}_precipitation"] = hour_data.get("precipitation")
+
+        # Add extended daily forecast (days 3-7)
+        for day_idx in range(3, min(8, len(daily_forecast))):  # Days 3-7
+            day_data = daily_forecast[day_idx]
+            prefix = f"day_{day_idx}"
+
+            attrs[f"{prefix}_datetime"] = day_data.get("datetime")
+            attrs[f"{prefix}_wind_speed_max"] = day_data.get("wind_speed")
+            attrs[f"{prefix}_wind_gust_max"] = day_data.get("wind_gust_speed")
+            attrs[f"{prefix}_wind_direction"] = day_data.get("wind_bearing")
+            attrs[f"{prefix}_sunrise"] = day_data.get("sunrise").isoformat() if day_data.get("sunrise") else None
+            attrs[f"{prefix}_sunset"] = day_data.get("sunset").isoformat() if day_data.get("sunset") else None
+            attrs[f"{prefix}_sunshine_duration"] = day_data.get("sunshine_duration")
+            attrs[f"{prefix}_daylight_duration"] = day_data.get("daylight_duration")
+            attrs[f"{prefix}_uv_index"] = day_data.get("uv_index")
+            attrs[f"{prefix}_rain_sum"] = day_data.get("rain_sum")
+            attrs[f"{prefix}_showers_sum"] = day_data.get("showers_sum")
+            attrs[f"{prefix}_snowfall_sum"] = day_data.get("snowfall_sum")
+            attrs[f"{prefix}_precipitation_sum"] = day_data.get("precipitation_sum")
+            attrs[f"{prefix}_precipitation_hours"] = day_data.get("precipitation_hours")
 
         return attrs
 

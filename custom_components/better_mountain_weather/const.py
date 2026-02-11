@@ -80,20 +80,67 @@ MASSIFS: Final = {
 }
 
 # Sensor types for AROME
+
+# Static sensors
 SENSOR_TYPE_ELEVATION: Final = "elevation"
-SENSOR_TYPE_UV_INDEX: Final = "uv_index"
-SENSOR_TYPE_SUNRISE: Final = "sunrise"
-SENSOR_TYPE_SUNSET: Final = "sunset"
-SENSOR_TYPE_CLOUD_COVERAGE: Final = "cloud_coverage"
+
+# Current weather sensors
+SENSOR_TYPE_TEMPERATURE_CURRENT: Final = "temperature_current"
 SENSOR_TYPE_HUMIDITY: Final = "humidity"
 SENSOR_TYPE_WIND_SPEED_CURRENT: Final = "wind_speed_current"
+SENSOR_TYPE_WIND_DIRECTION_CURRENT: Final = "wind_direction_current"
 SENSOR_TYPE_WIND_GUST_CURRENT: Final = "wind_gust_current"
-SENSOR_TYPE_WIND_SPEED_TODAY_MAX: Final = "wind_speed_today_max"
-SENSOR_TYPE_WIND_GUST_TODAY_MAX: Final = "wind_gust_today_max"
-SENSOR_TYPE_WIND_FORECAST_TOMORROW_MAX: Final = "wind_forecast_tomorrow_max"
-SENSOR_TYPE_GUST_FORECAST_TOMORROW_MAX: Final = "gust_forecast_tomorrow_max"
-SENSOR_TYPE_WIND_FORECAST_DAY2_MAX: Final = "wind_forecast_day2_max"
-SENSOR_TYPE_GUST_FORECAST_DAY2_MAX: Final = "gust_forecast_day2_max"
+SENSOR_TYPE_IS_DAY: Final = "is_day"
+SENSOR_TYPE_PRECIPITATION_CURRENT: Final = "precipitation_current"
+SENSOR_TYPE_RAIN_CURRENT: Final = "rain_current"
+SENSOR_TYPE_SHOWERS_CURRENT: Final = "showers_current"
+SENSOR_TYPE_SNOWFALL_CURRENT: Final = "snowfall_current"
+SENSOR_TYPE_CLOUD_COVERAGE: Final = "cloud_coverage"
+
+# Daily sensors - Day 0 (Today)
+SENSOR_TYPE_WIND_SPEED_MAX_DAY0: Final = "wind_speed_max_day0"
+SENSOR_TYPE_WIND_GUST_MAX_DAY0: Final = "wind_gust_max_day0"
+SENSOR_TYPE_WIND_DIRECTION_DAY0: Final = "wind_direction_day0"
+SENSOR_TYPE_SUNRISE_DAY0: Final = "sunrise_day0"
+SENSOR_TYPE_SUNSET_DAY0: Final = "sunset_day0"
+SENSOR_TYPE_SUNSHINE_DURATION_DAY0: Final = "sunshine_duration_day0"
+SENSOR_TYPE_DAYLIGHT_DURATION_DAY0: Final = "daylight_duration_day0"
+SENSOR_TYPE_UV_INDEX_DAY0: Final = "uv_index_day0"
+SENSOR_TYPE_RAIN_SUM_DAY0: Final = "rain_sum_day0"
+SENSOR_TYPE_SHOWERS_SUM_DAY0: Final = "showers_sum_day0"
+SENSOR_TYPE_SNOWFALL_SUM_DAY0: Final = "snowfall_sum_day0"
+SENSOR_TYPE_PRECIPITATION_SUM_DAY0: Final = "precipitation_sum_day0"
+SENSOR_TYPE_PRECIPITATION_HOURS_DAY0: Final = "precipitation_hours_day0"
+
+# Daily sensors - Day 1 (Tomorrow)
+SENSOR_TYPE_WIND_SPEED_MAX_DAY1: Final = "wind_speed_max_day1"
+SENSOR_TYPE_WIND_GUST_MAX_DAY1: Final = "wind_gust_max_day1"
+SENSOR_TYPE_WIND_DIRECTION_DAY1: Final = "wind_direction_day1"
+SENSOR_TYPE_SUNRISE_DAY1: Final = "sunrise_day1"
+SENSOR_TYPE_SUNSET_DAY1: Final = "sunset_day1"
+SENSOR_TYPE_SUNSHINE_DURATION_DAY1: Final = "sunshine_duration_day1"
+SENSOR_TYPE_DAYLIGHT_DURATION_DAY1: Final = "daylight_duration_day1"
+SENSOR_TYPE_UV_INDEX_DAY1: Final = "uv_index_day1"
+SENSOR_TYPE_RAIN_SUM_DAY1: Final = "rain_sum_day1"
+SENSOR_TYPE_SHOWERS_SUM_DAY1: Final = "showers_sum_day1"
+SENSOR_TYPE_SNOWFALL_SUM_DAY1: Final = "snowfall_sum_day1"
+SENSOR_TYPE_PRECIPITATION_SUM_DAY1: Final = "precipitation_sum_day1"
+SENSOR_TYPE_PRECIPITATION_HOURS_DAY1: Final = "precipitation_hours_day1"
+
+# Daily sensors - Day 2
+SENSOR_TYPE_WIND_SPEED_MAX_DAY2: Final = "wind_speed_max_day2"
+SENSOR_TYPE_WIND_GUST_MAX_DAY2: Final = "wind_gust_max_day2"
+SENSOR_TYPE_WIND_DIRECTION_DAY2: Final = "wind_direction_day2"
+SENSOR_TYPE_SUNRISE_DAY2: Final = "sunrise_day2"
+SENSOR_TYPE_SUNSET_DAY2: Final = "sunset_day2"
+SENSOR_TYPE_SUNSHINE_DURATION_DAY2: Final = "sunshine_duration_day2"
+SENSOR_TYPE_DAYLIGHT_DURATION_DAY2: Final = "daylight_duration_day2"
+SENSOR_TYPE_UV_INDEX_DAY2: Final = "uv_index_day2"
+SENSOR_TYPE_RAIN_SUM_DAY2: Final = "rain_sum_day2"
+SENSOR_TYPE_SHOWERS_SUM_DAY2: Final = "showers_sum_day2"
+SENSOR_TYPE_SNOWFALL_SUM_DAY2: Final = "snowfall_sum_day2"
+SENSOR_TYPE_PRECIPITATION_SUM_DAY2: Final = "precipitation_sum_day2"
+SENSOR_TYPE_PRECIPITATION_HOURS_DAY2: Final = "precipitation_hours_day2"
 
 # Sensor types for BRA (Phase 2)
 SENSOR_TYPE_AVALANCHE_RISK: Final = "avalanche_risk"

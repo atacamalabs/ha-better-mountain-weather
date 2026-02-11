@@ -45,7 +45,8 @@ class OpenMeteoClient:
                     "latitude": self._latitude,
                     "longitude": self._longitude,
                     "current": "temperature_2m,relative_humidity_2m,pressure_msl,"
-                    "wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover",
+                    "wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover,"
+                    "is_day,precipitation,rain,showers,snowfall",
                     "timezone": "auto",
                 }
 
@@ -66,6 +67,11 @@ class OpenMeteoClient:
                         "wind_bearing": current.get("wind_direction_10m"),
                         "wind_gust": current.get("wind_gusts_10m"),
                         "cloud_coverage": current.get("cloud_cover"),
+                        "is_day": current.get("is_day", 1) == 1,
+                        "precipitation": current.get("precipitation"),
+                        "rain": current.get("rain"),
+                        "showers": current.get("showers"),
+                        "snowfall": current.get("snowfall"),
                         "visibility": None,  # Not provided by Open-Meteo
                         "timestamp": current.get("time"),
                     }
@@ -75,7 +81,7 @@ class OpenMeteoClient:
             raise OpenMeteoApiError(f"Failed to get current weather: {err}") from err
 
     async def async_get_daily_forecast(self) -> list[dict[str, Any]]:
-        """Get daily forecast for 7 days.
+        """Get daily forecast for 8 days (today + 7 next days).
 
         Returns:
             List of daily forecast dictionaries
@@ -86,9 +92,11 @@ class OpenMeteoClient:
                     "latitude": self._latitude,
                     "longitude": self._longitude,
                     "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,"
-                    "weather_code,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant",
+                    "weather_code,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,"
+                    "sunrise,sunset,sunshine_duration,daylight_duration,uv_index_max,"
+                    "rain_sum,showers_sum,snowfall_sum,precipitation_hours",
                     "timezone": "auto",
-                    "forecast_days": 7,
+                    "forecast_days": 8,
                 }
 
                 async with session.get(
@@ -104,16 +112,32 @@ class OpenMeteoClient:
                     for i in range(len(times)):
                         dt = datetime.fromisoformat(times[i])
 
+                        # Parse sunrise/sunset
+                        sunrise_str = daily.get("sunrise", [None])[i]
+                        sunset_str = daily.get("sunset", [None])[i]
+                        sunrise = datetime.fromisoformat(sunrise_str) if sunrise_str else None
+                        sunset = datetime.fromisoformat(sunset_str) if sunset_str else None
+
                         daily_forecasts.append({
                             "datetime": dt.isoformat(),
                             "temperature": daily["temperature_2m_max"][i],
                             "templow": daily["temperature_2m_min"][i],
-                            "precipitation": daily["precipitation_sum"][i],
+                            "precipitation_sum": daily["precipitation_sum"][i],
+                            "precipitation": daily["precipitation_sum"][i],  # Keep for backward compatibility
                             "precipitation_probability": None,  # Not in daily
                             "condition": self._map_weather_code(daily.get("weather_code", [None])[i]),
                             "wind_speed": daily.get("wind_speed_10m_max", [None])[i],
                             "wind_gust_speed": daily.get("wind_gusts_10m_max", [None])[i],
                             "wind_bearing": daily.get("wind_direction_10m_dominant", [None])[i],
+                            "sunrise": sunrise,
+                            "sunset": sunset,
+                            "sunshine_duration": daily.get("sunshine_duration", [None])[i],
+                            "daylight_duration": daily.get("daylight_duration", [None])[i],
+                            "uv_index": daily.get("uv_index_max", [None])[i],
+                            "rain_sum": daily.get("rain_sum", [None])[i],
+                            "showers_sum": daily.get("showers_sum", [None])[i],
+                            "snowfall_sum": daily.get("snowfall_sum", [None])[i],
+                            "precipitation_hours": daily.get("precipitation_hours", [None])[i],
                         })
 
                     return daily_forecasts
@@ -189,20 +213,21 @@ class OpenMeteoClient:
             _LOGGER.error("Error getting hourly forecast: %s", err)
             raise OpenMeteoApiError(f"Failed to get hourly forecast: {err}") from err
 
-    async def async_get_additional_data(self) -> dict[str, Any]:
-        """Get additional weather data (elevation, UV, sun times).
+    async def async_get_hourly_6h(self) -> list[dict[str, Any]]:
+        """Get hourly forecast for next 6 hours.
 
         Returns:
-            Dictionary with additional weather data
+            List of hourly forecast dictionaries for next 6 hours
         """
         try:
             async with aiohttp.ClientSession() as session:
                 params = {
                     "latitude": self._latitude,
                     "longitude": self._longitude,
-                    "daily": "sunrise,sunset,uv_index_max",
+                    "hourly": "temperature_2m,wind_speed_10m,wind_gusts_10m,cloud_cover,"
+                    "snowfall,rain,precipitation",
                     "timezone": "auto",
-                    "forecast_days": 1,
+                    "forecast_days": 1,  # Only need today's data
                 }
 
                 async with session.get(
@@ -211,119 +236,81 @@ class OpenMeteoClient:
                     response.raise_for_status()
                     data = await response.json()
 
-                    daily = data.get("daily", {})
+                    hourly = data.get("hourly", {})
+                    hourly_6h = []
+
+                    times = hourly.get("time", [])
+
+                    # Get current time for comparison
+                    if not times:
+                        return []
+
+                    first_dt = datetime.fromisoformat(times[0])
+                    # Use the same timezone as the forecast data
+                    if first_dt.tzinfo:
+                        now = datetime.now(tz=first_dt.tzinfo)
+                    else:
+                        now = datetime.now()
+
+                    hour_count = 0
+                    for i in range(len(times)):
+                        dt = datetime.fromisoformat(times[i])
+
+                        # Only include future hours
+                        if dt > now:
+                            hour_count += 1
+                            hourly_6h.append({
+                                "hour": hour_count,
+                                "datetime": dt,
+                                "temperature": hourly["temperature_2m"][i],
+                                "wind_speed": hourly["wind_speed_10m"][i],
+                                "wind_gust": hourly["wind_gusts_10m"][i],
+                                "cloud_cover": hourly.get("cloud_cover", [None])[i],
+                                "snowfall": hourly.get("snowfall", [None])[i],
+                                "rain": hourly.get("rain", [None])[i],
+                                "precipitation": hourly.get("precipitation", [None])[i],
+                            })
+
+                            # Stop after collecting 6 future hours
+                            if hour_count >= 6:
+                                break
+
+                    return hourly_6h
+
+        except Exception as err:
+            _LOGGER.error("Error getting hourly 6h forecast: %s", err)
+            raise OpenMeteoApiError(f"Failed to get hourly 6h forecast: {err}") from err
+
+    async def async_get_additional_data(self) -> dict[str, Any]:
+        """Get additional weather data (elevation only).
+
+        Returns:
+            Dictionary with elevation data
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                params = {
+                    "latitude": self._latitude,
+                    "longitude": self._longitude,
+                    "timezone": "auto",
+                }
+
+                async with session.get(
+                    self._base_url, params=params, timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
+                    response.raise_for_status()
+                    data = await response.json()
 
                     # Get elevation from response
                     elevation = data.get("elevation", 0)
 
-                    # Get today's sunrise/sunset
-                    sunrise_str = daily.get("sunrise", [None])[0]
-                    sunset_str = daily.get("sunset", [None])[0]
-
-                    sunrise = datetime.fromisoformat(sunrise_str) if sunrise_str else None
-                    sunset = datetime.fromisoformat(sunset_str) if sunset_str else None
-
-                    # Ensure timezone awareness
-                    if sunrise and sunrise.tzinfo is None:
-                        sunrise = sunrise.replace(tzinfo=timezone.utc)
-                    if sunset and sunset.tzinfo is None:
-                        sunset = sunset.replace(tzinfo=timezone.utc)
-
-                    # Fallback if not available
-                    if not sunrise:
-                        now = datetime.now(tz=timezone.utc)
-                        sunrise = now.replace(hour=7, minute=0, second=0, microsecond=0)
-                    if not sunset:
-                        now = datetime.now(tz=timezone.utc)
-                        sunset = now.replace(hour=19, minute=0, second=0, microsecond=0)
-
-                    uv_index = daily.get("uv_index_max", [0])[0]
-
                     return {
                         "elevation": elevation,
-                        "uv_index": uv_index,
-                        "sunrise": sunrise,
-                        "sunset": sunset,
                     }
 
         except Exception as err:
             _LOGGER.error("Error getting additional data: %s", err)
             raise OpenMeteoApiError(f"Failed to get additional data: {err}") from err
-
-    def get_today_max_wind(self, hourly_forecasts: list[dict[str, Any]]) -> dict[str, Any]:
-        """Calculate today's maximum wind speed and gust from hourly forecasts.
-
-        Args:
-            hourly_forecasts: List of hourly forecast dictionaries
-
-        Returns:
-            Dictionary with max wind speed and gust for today
-        """
-        today = datetime.now().date()
-        max_wind_speed = 0
-        max_wind_gust = 0
-
-        for forecast in hourly_forecasts:
-            forecast_dt = forecast["datetime"]
-            if isinstance(forecast_dt, str):
-                forecast_dt = datetime.fromisoformat(forecast_dt)
-
-            forecast_date = forecast_dt.date()
-
-            if forecast_date == today:
-                wind = forecast.get("wind_speed") or 0
-                gust = forecast.get("wind_gust_speed") or 0
-                max_wind_speed = max(max_wind_speed, wind)
-                max_wind_gust = max(max_wind_gust, gust)
-
-        return {
-            "wind_speed_today_max": max_wind_speed,
-            "wind_gust_today_max": max_wind_gust,
-        }
-
-    def get_wind_forecasts(self, hourly_forecasts: list[dict[str, Any]]) -> dict[str, Any]:
-        """Calculate wind forecasts for tomorrow and day 2 from hourly forecasts.
-
-        Args:
-            hourly_forecasts: List of hourly forecast dictionaries
-
-        Returns:
-            Dictionary with max wind speed and gust for tomorrow and day 2
-        """
-        now = datetime.now(tz=timezone.utc)
-        today = now.date()
-        tomorrow = (now + timedelta(days=1)).date()
-        day_after = (now + timedelta(days=2)).date()
-
-        # Initialize max values
-        tomorrow_wind = 0
-        tomorrow_gust = 0
-        day2_wind = 0
-        day2_gust = 0
-
-        for forecast in hourly_forecasts:
-            forecast_dt = forecast["datetime"]
-            if isinstance(forecast_dt, str):
-                forecast_dt = datetime.fromisoformat(forecast_dt)
-
-            forecast_date = forecast_dt.date()
-
-            wind_speed = forecast.get("wind_speed") or 0
-            wind_gust = forecast.get("wind_gust_speed") or 0
-
-            if forecast_date == tomorrow:
-                tomorrow_wind = max(tomorrow_wind, wind_speed)
-                tomorrow_gust = max(tomorrow_gust, wind_gust)
-            elif forecast_date == day_after:
-                day2_wind = max(day2_wind, wind_speed)
-                day2_gust = max(day2_gust, wind_gust)
-
-        return {
-            "wind_forecast_tomorrow_max": tomorrow_wind,
-            "gust_forecast_tomorrow_max": tomorrow_gust,
-            "wind_forecast_day2_max": day2_wind,
-            "gust_forecast_day2_max": day2_gust,
-        }
 
     @staticmethod
     def _map_weather_code(code: int | None) -> str:

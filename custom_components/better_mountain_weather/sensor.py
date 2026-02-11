@@ -20,6 +20,8 @@ from homeassistant.const import (
     PERCENTAGE,
     UnitOfLength,
     UnitOfSpeed,
+    UnitOfTemperature,
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
@@ -34,18 +36,16 @@ from .const import (
     MANUFACTURER,
     SENSOR_TYPE_CLOUD_COVERAGE,
     SENSOR_TYPE_ELEVATION,
-    SENSOR_TYPE_GUST_FORECAST_DAY2_MAX,
-    SENSOR_TYPE_GUST_FORECAST_TOMORROW_MAX,
     SENSOR_TYPE_HUMIDITY,
-    SENSOR_TYPE_SUNRISE,
-    SENSOR_TYPE_SUNSET,
-    SENSOR_TYPE_UV_INDEX,
-    SENSOR_TYPE_WIND_FORECAST_DAY2_MAX,
-    SENSOR_TYPE_WIND_FORECAST_TOMORROW_MAX,
-    SENSOR_TYPE_WIND_GUST_CURRENT,
-    SENSOR_TYPE_WIND_GUST_TODAY_MAX,
+    SENSOR_TYPE_TEMPERATURE_CURRENT,
     SENSOR_TYPE_WIND_SPEED_CURRENT,
-    SENSOR_TYPE_WIND_SPEED_TODAY_MAX,
+    SENSOR_TYPE_WIND_DIRECTION_CURRENT,
+    SENSOR_TYPE_WIND_GUST_CURRENT,
+    SENSOR_TYPE_IS_DAY,
+    SENSOR_TYPE_PRECIPITATION_CURRENT,
+    SENSOR_TYPE_RAIN_CURRENT,
+    SENSOR_TYPE_SHOWERS_CURRENT,
+    SENSOR_TYPE_SNOWFALL_CURRENT,
 )
 from .coordinator import AromeCoordinator
 
@@ -59,7 +59,8 @@ class BetterMountainWeatherSensorDescription(SensorEntityDescription):
     value_fn: Callable[[dict[str, Any]], StateType] = None
 
 
-AROME_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
+# Static sensors (not dependent on weather updates)
+STATIC_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
     BetterMountainWeatherSensorDescription(
         key=SENSOR_TYPE_ELEVATION,
         name="Elevation",
@@ -68,36 +69,17 @@ AROME_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: data.get("elevation"),
     ),
-    # Air Quality - Removed (not available from Météo-France API)
-    # TODO Phase 3: Add air quality from ATMO France or other source
+)
+
+# Current weather sensors
+CURRENT_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
     BetterMountainWeatherSensorDescription(
-        key=SENSOR_TYPE_UV_INDEX,
-        name="UV Index",
+        key=SENSOR_TYPE_TEMPERATURE_CURRENT,
+        name="Temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:weather-sunny-alert",
-        value_fn=lambda data: data.get("uv_index"),
-    ),
-    BetterMountainWeatherSensorDescription(
-        key=SENSOR_TYPE_SUNRISE,
-        name="Sunrise",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        icon="mdi:weather-sunset-up",
-        value_fn=lambda data: data.get("sunrise"),
-    ),
-    BetterMountainWeatherSensorDescription(
-        key=SENSOR_TYPE_SUNSET,
-        name="Sunset",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        icon="mdi:weather-sunset-down",
-        value_fn=lambda data: data.get("sunset"),
-    ),
-    BetterMountainWeatherSensorDescription(
-        key=SENSOR_TYPE_CLOUD_COVERAGE,
-        name="Cloud Coverage",
-        native_unit_of_measurement=PERCENTAGE,
-        state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:cloud-percent",
-        value_fn=lambda data: data.get("current", {}).get("cloud_coverage"),
+        value_fn=lambda data: data.get("current", {}).get("temperature"),
     ),
     BetterMountainWeatherSensorDescription(
         key=SENSOR_TYPE_HUMIDITY,
@@ -106,6 +88,13 @@ AROME_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
         device_class=SensorDeviceClass.HUMIDITY,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: data.get("current", {}).get("humidity"),
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_IS_DAY,
+        name="Is Day",
+        device_class=SensorDeviceClass.ENUM,
+        icon="mdi:weather-sunny",
+        value_fn=lambda data: "day" if data.get("current", {}).get("is_day") else "night",
     ),
     BetterMountainWeatherSensorDescription(
         key=SENSOR_TYPE_WIND_SPEED_CURRENT,
@@ -117,6 +106,14 @@ AROME_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
         value_fn=lambda data: data.get("current", {}).get("wind_speed"),
     ),
     BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_WIND_DIRECTION_CURRENT,
+        name="Wind Direction",
+        native_unit_of_measurement="°",
+        icon="mdi:compass",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.get("current", {}).get("wind_bearing"),
+    ),
+    BetterMountainWeatherSensorDescription(
         key=SENSOR_TYPE_WIND_GUST_CURRENT,
         name="Wind Gust",
         native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
@@ -126,61 +123,200 @@ AROME_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
         value_fn=lambda data: data.get("current", {}).get("wind_gust"),
     ),
     BetterMountainWeatherSensorDescription(
-        key=SENSOR_TYPE_WIND_SPEED_TODAY_MAX,
-        name="Wind Speed Today Max",
-        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
-        device_class=SensorDeviceClass.WIND_SPEED,
+        key=SENSOR_TYPE_PRECIPITATION_CURRENT,
+        name="Precipitation",
+        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
+        device_class=SensorDeviceClass.PRECIPITATION,
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:weather-windy",
-        value_fn=lambda data: data.get("wind_speed_today_max"),
+        icon="mdi:weather-pouring",
+        value_fn=lambda data: data.get("current", {}).get("precipitation"),
     ),
     BetterMountainWeatherSensorDescription(
-        key=SENSOR_TYPE_WIND_GUST_TODAY_MAX,
-        name="Wind Gust Today Max",
-        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
-        device_class=SensorDeviceClass.WIND_SPEED,
+        key=SENSOR_TYPE_RAIN_CURRENT,
+        name="Rain",
+        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
+        device_class=SensorDeviceClass.PRECIPITATION,
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:weather-windy-variant",
-        value_fn=lambda data: data.get("wind_gust_today_max"),
-    ),
-    # Wind Forecasts for Tomorrow and Day 2
-    BetterMountainWeatherSensorDescription(
-        key=SENSOR_TYPE_WIND_FORECAST_TOMORROW_MAX,
-        name="Wind Tomorrow Max",
-        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
-        device_class=SensorDeviceClass.WIND_SPEED,
-        state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:weather-windy",
-        value_fn=lambda data: data.get("wind_forecast_tomorrow_max"),
+        icon="mdi:weather-rainy",
+        value_fn=lambda data: data.get("current", {}).get("rain"),
     ),
     BetterMountainWeatherSensorDescription(
-        key=SENSOR_TYPE_GUST_FORECAST_TOMORROW_MAX,
-        name="Wind Gust Tomorrow Max",
-        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
-        device_class=SensorDeviceClass.WIND_SPEED,
+        key=SENSOR_TYPE_SHOWERS_CURRENT,
+        name="Showers",
+        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
+        device_class=SensorDeviceClass.PRECIPITATION,
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:weather-windy-variant",
-        value_fn=lambda data: data.get("gust_forecast_tomorrow_max"),
+        icon="mdi:weather-partly-rainy",
+        value_fn=lambda data: data.get("current", {}).get("showers"),
     ),
     BetterMountainWeatherSensorDescription(
-        key=SENSOR_TYPE_WIND_FORECAST_DAY2_MAX,
-        name="Wind Day 2 Max",
-        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
-        device_class=SensorDeviceClass.WIND_SPEED,
+        key=SENSOR_TYPE_SNOWFALL_CURRENT,
+        name="Snowfall",
+        native_unit_of_measurement=UnitOfLength.CENTIMETERS,
+        device_class=SensorDeviceClass.PRECIPITATION,
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:weather-windy",
-        value_fn=lambda data: data.get("wind_forecast_day2_max"),
+        icon="mdi:weather-snowy",
+        value_fn=lambda data: data.get("current", {}).get("snowfall"),
     ),
     BetterMountainWeatherSensorDescription(
-        key=SENSOR_TYPE_GUST_FORECAST_DAY2_MAX,
-        name="Wind Gust Day 2 Max",
-        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
-        device_class=SensorDeviceClass.WIND_SPEED,
+        key=SENSOR_TYPE_CLOUD_COVERAGE,
+        name="Cloud Coverage",
+        native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:weather-windy-variant",
-        value_fn=lambda data: data.get("gust_forecast_day2_max"),
+        icon="mdi:cloud-percent",
+        value_fn=lambda data: data.get("current", {}).get("cloud_coverage"),
     ),
 )
+
+
+def _create_daily_sensors() -> tuple[BetterMountainWeatherSensorDescription, ...]:
+    """Create daily sensors for days 0, 1, 2."""
+    sensors = []
+    day_names = ["Today", "Tomorrow", "Day 2"]
+
+    for day_idx in range(3):
+        day_name = day_names[day_idx]
+
+        # Wind Speed Max
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"wind_speed_max_day{day_idx}",
+            name=f"Wind Speed Max {day_name}",
+            native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
+            device_class=SensorDeviceClass.WIND_SPEED,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:weather-windy",
+            value_fn=lambda data, idx=day_idx: data.get("daily_forecast", [])[idx].get("wind_speed") if len(data.get("daily_forecast", [])) > idx else None,
+        ))
+
+        # Wind Gust Max
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"wind_gust_max_day{day_idx}",
+            name=f"Wind Gust Max {day_name}",
+            native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
+            device_class=SensorDeviceClass.WIND_SPEED,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:weather-windy-variant",
+            value_fn=lambda data, idx=day_idx: data.get("daily_forecast", [])[idx].get("wind_gust_speed") if len(data.get("daily_forecast", [])) > idx else None,
+        ))
+
+        # Wind Direction
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"wind_direction_day{day_idx}",
+            name=f"Wind Direction {day_name}",
+            native_unit_of_measurement="°",
+            icon="mdi:compass",
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=lambda data, idx=day_idx: data.get("daily_forecast", [])[idx].get("wind_bearing") if len(data.get("daily_forecast", [])) > idx else None,
+        ))
+
+        # Sunrise
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"sunrise_day{day_idx}",
+            name=f"Sunrise {day_name}",
+            device_class=SensorDeviceClass.TIMESTAMP,
+            icon="mdi:weather-sunset-up",
+            value_fn=lambda data, idx=day_idx: data.get("daily_forecast", [])[idx].get("sunrise") if len(data.get("daily_forecast", [])) > idx else None,
+        ))
+
+        # Sunset
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"sunset_day{day_idx}",
+            name=f"Sunset {day_name}",
+            device_class=SensorDeviceClass.TIMESTAMP,
+            icon="mdi:weather-sunset-down",
+            value_fn=lambda data, idx=day_idx: data.get("daily_forecast", [])[idx].get("sunset") if len(data.get("daily_forecast", [])) > idx else None,
+        ))
+
+        # Sunshine Duration
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"sunshine_duration_day{day_idx}",
+            name=f"Sunshine Duration {day_name}",
+            native_unit_of_measurement=UnitOfTime.HOURS,
+            device_class=SensorDeviceClass.DURATION,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:weather-sunny",
+            value_fn=lambda data, idx=day_idx: (data.get("daily_forecast", [])[idx].get("sunshine_duration") / 3600) if len(data.get("daily_forecast", [])) > idx and data.get("daily_forecast", [])[idx].get("sunshine_duration") is not None else None,
+        ))
+
+        # Daylight Duration
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"daylight_duration_day{day_idx}",
+            name=f"Daylight Duration {day_name}",
+            native_unit_of_measurement=UnitOfTime.HOURS,
+            device_class=SensorDeviceClass.DURATION,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:weather-sunset",
+            value_fn=lambda data, idx=day_idx: (data.get("daily_forecast", [])[idx].get("daylight_duration") / 3600) if len(data.get("daily_forecast", [])) > idx and data.get("daily_forecast", [])[idx].get("daylight_duration") is not None else None,
+        ))
+
+        # UV Index
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"uv_index_day{day_idx}",
+            name=f"UV Index {day_name}",
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:weather-sunny-alert",
+            value_fn=lambda data, idx=day_idx: data.get("daily_forecast", [])[idx].get("uv_index") if len(data.get("daily_forecast", [])) > idx else None,
+        ))
+
+        # Rain Sum
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"rain_sum_day{day_idx}",
+            name=f"Rain Sum {day_name}",
+            native_unit_of_measurement=UnitOfLength.MILLIMETERS,
+            device_class=SensorDeviceClass.PRECIPITATION,
+            state_class=SensorStateClass.TOTAL,
+            icon="mdi:weather-rainy",
+            value_fn=lambda data, idx=day_idx: data.get("daily_forecast", [])[idx].get("rain_sum") if len(data.get("daily_forecast", [])) > idx else None,
+        ))
+
+        # Showers Sum
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"showers_sum_day{day_idx}",
+            name=f"Showers Sum {day_name}",
+            native_unit_of_measurement=UnitOfLength.MILLIMETERS,
+            device_class=SensorDeviceClass.PRECIPITATION,
+            state_class=SensorStateClass.TOTAL,
+            icon="mdi:weather-partly-rainy",
+            value_fn=lambda data, idx=day_idx: data.get("daily_forecast", [])[idx].get("showers_sum") if len(data.get("daily_forecast", [])) > idx else None,
+        ))
+
+        # Snowfall Sum
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"snowfall_sum_day{day_idx}",
+            name=f"Snowfall Sum {day_name}",
+            native_unit_of_measurement=UnitOfLength.CENTIMETERS,
+            device_class=SensorDeviceClass.PRECIPITATION,
+            state_class=SensorStateClass.TOTAL,
+            icon="mdi:weather-snowy",
+            value_fn=lambda data, idx=day_idx: data.get("daily_forecast", [])[idx].get("snowfall_sum") if len(data.get("daily_forecast", [])) > idx else None,
+        ))
+
+        # Precipitation Sum
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"precipitation_sum_day{day_idx}",
+            name=f"Precipitation Sum {day_name}",
+            native_unit_of_measurement=UnitOfLength.MILLIMETERS,
+            device_class=SensorDeviceClass.PRECIPITATION,
+            state_class=SensorStateClass.TOTAL,
+            icon="mdi:weather-pouring",
+            value_fn=lambda data, idx=day_idx: data.get("daily_forecast", [])[idx].get("precipitation_sum") if len(data.get("daily_forecast", [])) > idx else None,
+        ))
+
+        # Precipitation Hours
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"precipitation_hours_day{day_idx}",
+            name=f"Precipitation Hours {day_name}",
+            native_unit_of_measurement=UnitOfTime.HOURS,
+            device_class=SensorDeviceClass.DURATION,
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:clock-outline",
+            value_fn=lambda data, idx=day_idx: data.get("daily_forecast", [])[idx].get("precipitation_hours") if len(data.get("daily_forecast", [])) > idx else None,
+        ))
+
+    return tuple(sensors)
+
+
+DAILY_SENSORS = _create_daily_sensors()
 
 
 async def async_setup_entry(
@@ -194,17 +330,26 @@ async def async_setup_entry(
     latitude = entry.data[CONF_LATITUDE]
     longitude = entry.data[CONF_LONGITUDE]
 
-    # Create AROME sensors
-    entities = [
-        BetterMountainWeatherSensor(
-            coordinator,
-            description,
-            location_name,
-            latitude,
-            longitude,
-        )
-        for description in AROME_SENSORS
-    ]
+    # Create all sensors
+    entities = []
+
+    # Add static sensors (elevation)
+    for description in STATIC_SENSORS:
+        entities.append(BetterMountainWeatherSensor(
+            coordinator, description, location_name, latitude, longitude
+        ))
+
+    # Add current weather sensors
+    for description in CURRENT_SENSORS:
+        entities.append(BetterMountainWeatherSensor(
+            coordinator, description, location_name, latitude, longitude
+        ))
+
+    # Add daily sensors
+    for description in DAILY_SENSORS:
+        entities.append(BetterMountainWeatherSensor(
+            coordinator, description, location_name, latitude, longitude
+        ))
 
     async_add_entities(entities, True)
 

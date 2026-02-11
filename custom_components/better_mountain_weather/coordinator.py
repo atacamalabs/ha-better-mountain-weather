@@ -55,36 +55,24 @@ class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             current_weather = await self.client.async_get_current_weather()
             daily_forecast = await self.client.async_get_daily_forecast()
             hourly_forecast = await self.client.async_get_hourly_forecast()
+            hourly_6h = await self.client.async_get_hourly_6h()
             additional_data = await self.client.async_get_additional_data()
-
-            # Calculate today's max wind from hourly forecast
-            today_wind = self.client.get_today_max_wind(hourly_forecast)
-
-            # Calculate wind forecasts for tomorrow and day 2
-            wind_forecasts = self.client.get_wind_forecasts(hourly_forecast)
 
             # Combine all data
             data = {
                 "current": current_weather,
                 "daily_forecast": daily_forecast,
                 "hourly_forecast": hourly_forecast,
+                "hourly_6h": hourly_6h,
                 "elevation": additional_data.get("elevation", 0),
-                "uv_index": additional_data.get("uv_index", 0),
-                "sunrise": additional_data.get("sunrise"),
-                "sunset": additional_data.get("sunset"),
-                "wind_speed_today_max": today_wind.get("wind_speed_today_max", 0),
-                "wind_gust_today_max": today_wind.get("wind_gust_today_max", 0),
-                "wind_forecast_tomorrow_max": wind_forecasts.get("wind_forecast_tomorrow_max", 0),
-                "gust_forecast_tomorrow_max": wind_forecasts.get("gust_forecast_tomorrow_max", 0),
-                "wind_forecast_day2_max": wind_forecasts.get("wind_forecast_day2_max", 0),
-                "gust_forecast_day2_max": wind_forecasts.get("gust_forecast_day2_max", 0),
             }
 
             _LOGGER.debug(
-                "Successfully updated weather data for %s: %d daily forecasts, %d hourly forecasts",
+                "Successfully updated weather data for %s: %d daily forecasts, %d hourly forecasts, %d hourly 6h",
                 self.location_name,
                 len(daily_forecast),
                 len(hourly_forecast),
+                len(hourly_6h),
             )
 
             return data

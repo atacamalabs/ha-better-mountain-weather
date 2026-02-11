@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .api.airquality_client import AirQualityApiError, AirQualityClient
 from .api.openmeteo_client import OpenMeteoApiError, OpenMeteoClient
 from .const import AROME_UPDATE_INTERVAL, DOMAIN
 
@@ -22,6 +23,7 @@ class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         hass: HomeAssistant,
         client: OpenMeteoClient,
         location_name: str,
+        airquality_client: AirQualityClient | None = None,
     ) -> None:
         """Initialize the weather coordinator.
 
@@ -29,6 +31,7 @@ class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             hass: Home Assistant instance
             client: Open-Meteo API client
             location_name: Name of the location for logging
+            airquality_client: Optional Air Quality API client
         """
         super().__init__(
             hass,
@@ -37,6 +40,7 @@ class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=AROME_UPDATE_INTERVAL,
         )
         self.client = client
+        self.airquality_client = airquality_client
         self.location_name = location_name
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -58,6 +62,16 @@ class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             hourly_6h = await self.client.async_get_hourly_6h()
             additional_data = await self.client.async_get_additional_data()
 
+            # Fetch air quality data if client is available
+            air_quality_data = {}
+            if self.airquality_client:
+                try:
+                    air_quality_data = await self.airquality_client.async_get_air_quality()
+                    _LOGGER.debug("Successfully fetched air quality data for %s", self.location_name)
+                except AirQualityApiError as err:
+                    _LOGGER.warning("Error fetching air quality data for %s: %s", self.location_name, err)
+                    # Continue without air quality data if it fails
+
             # Combine all data
             data = {
                 "current": current_weather,
@@ -65,6 +79,7 @@ class AromeCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "hourly_forecast": hourly_forecast,
                 "hourly_6h": hourly_6h,
                 "elevation": additional_data.get("elevation", 0),
+                "air_quality": air_quality_data,
             }
 
             _LOGGER.debug(

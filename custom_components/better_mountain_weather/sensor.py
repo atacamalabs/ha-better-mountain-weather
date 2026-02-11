@@ -36,7 +36,13 @@ from .const import (
     MANUFACTURER,
     SENSOR_TYPE_CLOUD_COVERAGE,
     SENSOR_TYPE_ELEVATION,
+    SENSOR_TYPE_EUROPEAN_AQI,
     SENSOR_TYPE_HUMIDITY,
+    SENSOR_TYPE_NITROGEN_DIOXIDE,
+    SENSOR_TYPE_OZONE,
+    SENSOR_TYPE_PM10,
+    SENSOR_TYPE_PM2_5,
+    SENSOR_TYPE_SULPHUR_DIOXIDE,
     SENSOR_TYPE_TEMPERATURE_CURRENT,
     SENSOR_TYPE_WIND_SPEED_CURRENT,
     SENSOR_TYPE_WIND_DIRECTION_CURRENT,
@@ -165,6 +171,61 @@ CURRENT_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:cloud-percent",
         value_fn=lambda data: data.get("current", {}).get("cloud_coverage"),
+    ),
+)
+
+# Air quality sensors
+AIR_QUALITY_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_EUROPEAN_AQI,
+        name="Air Quality Index (European)",
+        native_unit_of_measurement="EAQI",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:air-filter",
+        value_fn=lambda data: data.get("air_quality", {}).get("current", {}).get("european_aqi"),
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_PM2_5,
+        name="Particulate Matter 2.5",
+        native_unit_of_measurement="µg/m³",
+        device_class=SensorDeviceClass.PM25,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.get("air_quality", {}).get("current", {}).get("pm2_5"),
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_PM10,
+        name="Particulate Matter 10",
+        native_unit_of_measurement="µg/m³",
+        device_class=SensorDeviceClass.PM10,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.get("air_quality", {}).get("current", {}).get("pm10"),
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_NITROGEN_DIOXIDE,
+        name="Nitrogen Dioxide",
+        native_unit_of_measurement="µg/m³",
+        device_class=SensorDeviceClass.NITROGEN_DIOXIDE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:molecule",
+        value_fn=lambda data: data.get("air_quality", {}).get("current", {}).get("nitrogen_dioxide"),
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_OZONE,
+        name="Ozone",
+        native_unit_of_measurement="µg/m³",
+        device_class=SensorDeviceClass.OZONE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:molecule",
+        value_fn=lambda data: data.get("air_quality", {}).get("current", {}).get("ozone"),
+    ),
+    BetterMountainWeatherSensorDescription(
+        key=SENSOR_TYPE_SULPHUR_DIOXIDE,
+        name="Sulphur Dioxide",
+        native_unit_of_measurement="µg/m³",
+        device_class=SensorDeviceClass.SULPHUR_DIOXIDE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:molecule",
+        value_fn=lambda data: data.get("air_quality", {}).get("current", {}).get("sulphur_dioxide"),
     ),
 )
 
@@ -347,6 +408,12 @@ async def async_setup_entry(
 
     # Add daily sensors
     for description in DAILY_SENSORS:
+        entities.append(BetterMountainWeatherSensor(
+            coordinator, description, location_name, latitude, longitude
+        ))
+
+    # Add air quality sensors
+    for description in AIR_QUALITY_SENSORS:
         entities.append(BetterMountainWeatherSensor(
             coordinator, description, location_name, latitude, longitude
         ))

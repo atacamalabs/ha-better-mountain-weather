@@ -97,6 +97,14 @@ SENSOR_TYPE_SHOWERS_CURRENT: Final = "showers_current"
 SENSOR_TYPE_SNOWFALL_CURRENT: Final = "snowfall_current"
 SENSOR_TYPE_CLOUD_COVERAGE: Final = "cloud_coverage"
 
+# Air quality sensors
+SENSOR_TYPE_EUROPEAN_AQI: Final = "european_aqi"
+SENSOR_TYPE_PM2_5: Final = "pm2_5"
+SENSOR_TYPE_PM10: Final = "pm10"
+SENSOR_TYPE_NITROGEN_DIOXIDE: Final = "nitrogen_dioxide"
+SENSOR_TYPE_OZONE: Final = "ozone"
+SENSOR_TYPE_SULPHUR_DIOXIDE: Final = "sulphur_dioxide"
+
 # Daily sensors - Day 0 (Today)
 SENSOR_TYPE_WIND_SPEED_MAX_DAY0: Final = "wind_speed_max_day0"
 SENSOR_TYPE_WIND_GUST_MAX_DAY0: Final = "wind_gust_max_day0"

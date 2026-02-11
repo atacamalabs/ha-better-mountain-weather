@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er
 
+from .api.airquality_client import AirQualityClient
 from .api.openmeteo_client import OpenMeteoApiError, OpenMeteoClient
 from .const import (
     CONF_BRA_TOKEN,
@@ -135,11 +136,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         longitude=longitude,
     )
 
+    # Initialize Air Quality client
+    airquality_client = AirQualityClient(
+        latitude=latitude,
+        longitude=longitude,
+    )
+
     # Initialize AROME coordinator
     arome_coordinator = AromeCoordinator(
         hass=hass,
         client=arome_client,
         location_name=location_name,
+        airquality_client=airquality_client,
     )
 
     # Fetch initial weather data
@@ -157,6 +165,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {
         "arome_coordinator": arome_coordinator,
         "arome_client": arome_client,
+        "airquality_client": airquality_client,
     }
 
     # BRA coordinator will be added in Phase 2

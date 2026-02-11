@@ -355,6 +355,39 @@ class BetterMountainWeather(CoordinatorEntity[AromeCoordinator], WeatherEntity):
             precip_hours = day_data.get("precipitation_hours")
             attrs[f"{prefix}_precipitation_hours"] = f"{precip_hours}h" if precip_hours is not None else None
 
+        # Add current air quality data
+        air_quality = self.coordinator.data.get("air_quality", {})
+        current_aqi = air_quality.get("current", {})
+        if current_aqi:
+            aqi = current_aqi.get("european_aqi")
+            attrs["current_european_aqi"] = f"{aqi} EAQI" if aqi is not None else None
+
+            pm25 = current_aqi.get("pm2_5")
+            attrs["current_pm2_5"] = f"{pm25}µg/m³" if pm25 is not None else None
+
+            pm10 = current_aqi.get("pm10")
+            attrs["current_pm10"] = f"{pm10}µg/m³" if pm10 is not None else None
+
+            no2 = current_aqi.get("nitrogen_dioxide")
+            attrs["current_nitrogen_dioxide"] = f"{no2}µg/m³" if no2 is not None else None
+
+            o3 = current_aqi.get("ozone")
+            attrs["current_ozone"] = f"{o3}µg/m³" if o3 is not None else None
+
+            so2 = current_aqi.get("sulphur_dioxide")
+            attrs["current_sulphur_dioxide"] = f"{so2}µg/m³" if so2 is not None else None
+
+        # Add hourly air quality forecast (next 6 hours)
+        hourly_aqi = air_quality.get("hourly_forecast", [])
+        for hour_idx in range(min(6, len(hourly_aqi))):
+            hour_data = hourly_aqi[hour_idx]
+            hour_num = hour_idx + 1
+
+            aqi = hour_data.get("european_aqi")
+            attrs[f"hour_{hour_num}_european_aqi"] = f"{aqi} EAQI" if aqi is not None else None
+
+            attrs[f"hour_{hour_num}_aqi_datetime"] = hour_data.get("datetime")
+
         return attrs
 
     async def async_forecast_daily(self) -> list[Forecast] | None:

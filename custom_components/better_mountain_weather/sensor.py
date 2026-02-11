@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import logging
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -69,18 +70,21 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _parse_bra_datetime(date_str: str | None) -> datetime | None:
-    """Parse BRA datetime string and add UTC timezone.
+    """Parse BRA datetime string as Europe/Paris time and convert to UTC.
 
     BRA dates are in format '2026-02-11 16:00:00' without timezone.
-    We assume UTC for consistency.
+    The API is French (Météo-France), so times are in Europe/Paris timezone.
+    We convert to UTC for Home Assistant storage.
     """
     if not date_str:
         return None
     try:
         # Parse the datetime string
         dt = datetime.fromisoformat(date_str)
-        # Add UTC timezone
-        return dt.replace(tzinfo=dt_util.UTC)
+        # Add Europe/Paris timezone (this is the source timezone)
+        dt_paris = dt.replace(tzinfo=ZoneInfo("Europe/Paris"))
+        # Convert to UTC for storage
+        return dt_paris.astimezone(dt_util.UTC)
     except (ValueError, AttributeError) as err:
         _LOGGER.warning("Failed to parse BRA datetime '%s': %s", date_str, err)
         return None

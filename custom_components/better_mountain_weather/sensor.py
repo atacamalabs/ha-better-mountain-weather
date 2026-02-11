@@ -174,11 +174,11 @@ CURRENT_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
     ),
 )
 
-# Air quality sensors
-AIR_QUALITY_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
+# Current air quality sensors
+AIR_QUALITY_CURRENT_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
     BetterMountainWeatherSensorDescription(
         key=SENSOR_TYPE_EUROPEAN_AQI,
-        name="Air Quality Index (European)",
+        name="Air Quality Index",
         native_unit_of_measurement="EAQI",
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:air-filter",
@@ -228,6 +228,50 @@ AIR_QUALITY_SENSORS: tuple[BetterMountainWeatherSensorDescription, ...] = (
         value_fn=lambda data: data.get("air_quality", {}).get("current", {}).get("sulphur_dioxide"),
     ),
 )
+
+
+def _create_daily_aqi_sensors() -> tuple[BetterMountainWeatherSensorDescription, ...]:
+    """Create daily air quality sensors for days 0-6 (7 days)."""
+    sensors = []
+    day_names = ["Today", "Tomorrow", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6"]
+
+    for day_idx in range(7):
+        day_name = day_names[day_idx]
+
+        # European AQI Max
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"european_aqi_max_day{day_idx}",
+            name=f"Air Quality Index Max {day_name}",
+            native_unit_of_measurement="EAQI",
+            state_class=SensorStateClass.MEASUREMENT,
+            icon="mdi:air-filter",
+            value_fn=lambda data, idx=day_idx: data.get("air_quality", {}).get("daily_forecast", [])[idx].get("aqi_max") if len(data.get("air_quality", {}).get("daily_forecast", [])) > idx else None,
+        ))
+
+        # PM2.5 Max
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"pm2_5_max_day{day_idx}",
+            name=f"PM2.5 Max {day_name}",
+            native_unit_of_measurement="µg/m³",
+            device_class=SensorDeviceClass.PM25,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=lambda data, idx=day_idx: data.get("air_quality", {}).get("daily_forecast", [])[idx].get("pm25_max") if len(data.get("air_quality", {}).get("daily_forecast", [])) > idx else None,
+        ))
+
+        # PM10 Max
+        sensors.append(BetterMountainWeatherSensorDescription(
+            key=f"pm10_max_day{day_idx}",
+            name=f"PM10 Max {day_name}",
+            native_unit_of_measurement="µg/m³",
+            device_class=SensorDeviceClass.PM10,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=lambda data, idx=day_idx: data.get("air_quality", {}).get("daily_forecast", [])[idx].get("pm10_max") if len(data.get("air_quality", {}).get("daily_forecast", [])) > idx else None,
+        ))
+
+    return tuple(sensors)
+
+
+DAILY_AQI_SENSORS = _create_daily_aqi_sensors()
 
 
 def _create_daily_sensors() -> tuple[BetterMountainWeatherSensorDescription, ...]:
@@ -412,8 +456,14 @@ async def async_setup_entry(
             coordinator, description, location_name, latitude, longitude
         ))
 
-    # Add air quality sensors
-    for description in AIR_QUALITY_SENSORS:
+    # Add current air quality sensors
+    for description in AIR_QUALITY_CURRENT_SENSORS:
+        entities.append(BetterMountainWeatherSensor(
+            coordinator, description, location_name, latitude, longitude
+        ))
+
+    # Add daily air quality sensors
+    for description in DAILY_AQI_SENSORS:
         entities.append(BetterMountainWeatherSensor(
             coordinator, description, location_name, latitude, longitude
         ))

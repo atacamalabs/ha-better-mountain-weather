@@ -31,7 +31,7 @@ class AirQualityClient:
         """Fetch air quality data from Open-Meteo Air Quality API.
 
         Returns:
-            Dictionary with current air quality and hourly forecast
+            Dictionary with current air quality and daily forecast
 
         Raises:
             AirQualityApiError: If the API request fails
@@ -47,9 +47,9 @@ class AirQualityClient:
                 "ozone",
                 "sulphur_dioxide",
             ]),
-            "hourly": "european_aqi",
+            "hourly": "european_aqi,pm2_5,pm10",
             "timezone": "auto",
-            "forecast_days": 4,
+            "forecast_days": 7,  # Get 7 days of hourly data
         }
 
         try:
@@ -76,26 +76,82 @@ class AirQualityClient:
                 "sulphur_dioxide": current.get("sulphur_dioxide"),
             }
 
-            # Extract hourly forecast (next 24 hours)
+            # Extract and aggregate hourly data into daily maximums
             hourly_data = data.get("hourly", {})
             hourly_times = hourly_data.get("time", [])
             hourly_aqi = hourly_data.get("european_aqi", [])
+            hourly_pm25 = hourly_data.get("pm2_5", [])
+            hourly_pm10 = hourly_data.get("pm10", [])
 
-            # Limit to next 24 hours
-            hourly_forecast = []
-            for i in range(min(24, len(hourly_times))):
-                if i < len(hourly_aqi):
-                    hourly_forecast.append({
-                        "datetime": hourly_times[i],
-                        "european_aqi": hourly_aqi[i],
-                    })
+            # Aggregate into daily max values
+            daily_forecast = self._aggregate_to_daily(
+                hourly_times, hourly_aqi, hourly_pm25, hourly_pm10
+            )
 
             return {
                 "current": current_aqi,
-                "hourly_forecast": hourly_forecast,
+                "daily_forecast": daily_forecast,
             }
 
         except aiohttp.ClientError as err:
             raise AirQualityApiError(f"Error communicating with Air Quality API: {err}") from err
         except Exception as err:
             raise AirQualityApiError(f"Unexpected error fetching air quality data: {err}") from err
+
+    def _aggregate_to_daily(
+        self,
+        hourly_times: list[str],
+        hourly_aqi: list[float],
+        hourly_pm25: list[float],
+        hourly_pm10: list[float],
+    ) -> list[dict[str, Any]]:
+        """Aggregate hourly data into daily maximums.
+
+        Args:
+            hourly_times: List of ISO 8601 datetime strings
+            hourly_aqi: List of European AQI values
+            hourly_pm25: List of PM2.5 values
+            hourly_pm10: List of PM10 values
+
+        Returns:
+            List of daily aggregated data (max values per day)
+        """
+        from datetime import datetime
+
+        if not hourly_times or not hourly_aqi:
+            return []
+
+        daily_data = {}
+
+        for i, time_str in enumerate(hourly_times):
+            # Parse datetime and extract date
+            dt = datetime.fromisoformat(time_str.replace("Z", "+00:00"))
+            date_key = dt.date().isoformat()
+
+            # Initialize day if not exists
+            if date_key not in daily_data:
+                daily_data[date_key] = {
+                    "date": date_key,
+                    "aqi_max": None,
+                    "pm25_max": None,
+                    "pm10_max": None,
+                }
+
+            # Update max values for the day
+            if i < len(hourly_aqi) and hourly_aqi[i] is not None:
+                current_max = daily_data[date_key]["aqi_max"]
+                if current_max is None or hourly_aqi[i] > current_max:
+                    daily_data[date_key]["aqi_max"] = hourly_aqi[i]
+
+            if i < len(hourly_pm25) and hourly_pm25[i] is not None:
+                current_max = daily_data[date_key]["pm25_max"]
+                if current_max is None or hourly_pm25[i] > current_max:
+                    daily_data[date_key]["pm25_max"] = hourly_pm25[i]
+
+            if i < len(hourly_pm10) and hourly_pm10[i] is not None:
+                current_max = daily_data[date_key]["pm10_max"]
+                if current_max is None or hourly_pm10[i] > current_max:
+                    daily_data[date_key]["pm10_max"] = hourly_pm10[i]
+
+        # Convert to sorted list (by date)
+        return [daily_data[date] for date in sorted(daily_data.keys())]

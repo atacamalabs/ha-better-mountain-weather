@@ -377,16 +377,24 @@ class BetterMountainWeather(CoordinatorEntity[AromeCoordinator], WeatherEntity):
             so2 = current_aqi.get("sulphur_dioxide")
             attrs["current_sulphur_dioxide"] = f"{so2}µg/m³" if so2 is not None else None
 
-        # Add hourly air quality forecast (next 6 hours)
-        hourly_aqi = air_quality.get("hourly_forecast", [])
-        for hour_idx in range(min(6, len(hourly_aqi))):
-            hour_data = hourly_aqi[hour_idx]
-            hour_num = hour_idx + 1
+        # Add daily air quality forecast (next 7 days)
+        daily_aqi = air_quality.get("daily_forecast", [])
+        aqi_day_names = ["today", "tomorrow", "day_2", "day_3", "day_4", "day_5", "day_6"]
 
-            aqi = hour_data.get("european_aqi")
-            attrs[f"hour_{hour_num}_european_aqi"] = f"{aqi} EAQI" if aqi is not None else None
+        for day_idx in range(min(7, len(daily_aqi))):
+            day_data = daily_aqi[day_idx]
+            day_name = aqi_day_names[day_idx]
 
-            attrs[f"hour_{hour_num}_aqi_datetime"] = hour_data.get("datetime")
+            aqi_max = day_data.get("aqi_max")
+            attrs[f"{day_name}_aqi_max"] = f"{aqi_max} EAQI" if aqi_max is not None else None
+
+            pm25_max = day_data.get("pm25_max")
+            attrs[f"{day_name}_pm25_max"] = f"{pm25_max}µg/m³" if pm25_max is not None else None
+
+            pm10_max = day_data.get("pm10_max")
+            attrs[f"{day_name}_pm10_max"] = f"{pm10_max}µg/m³" if pm10_max is not None else None
+
+            attrs[f"{day_name}_aqi_date"] = day_data.get("date")
 
         return attrs
 

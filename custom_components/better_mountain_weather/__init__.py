@@ -47,6 +47,8 @@ async def async_migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> N
         "sensor.station_de_ski_orange_mountain_weather_wind_gust_today_max",
         "sensor.station_de_ski_orange_mountain_weather_wind_tomorrow_max",
         "sensor.station_de_ski_orange_mountain_weather_wind_gust_tomorrow_max",
+        "sensor.station_de_ski_orange_mountain_weather_wind_day_2_max",
+        "sensor.station_de_ski_orange_mountain_weather_wind_gust_day_2_max",
     ]
 
     # Remove old unavailable sensors
@@ -56,15 +58,28 @@ async def async_migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> N
             _LOGGER.info("Removing old unavailable sensor: %s", entity_id)
             entity_registry.async_remove(entity_id)
 
+    # Also handle full precision coordinate format (from previous migration)
+    lat_full = str(latitude)
+    lon_full = str(longitude)
+    old_full_precision_base = f"location_{lat_full.replace('.', '_')}_{lon_full.replace('.', '_')}_mountain_weather"
+
     # Migrate entity IDs that still use the old "station_de_ski_orange" pattern
-    # to the new coordinate-based pattern
+    # or full precision coordinates to the new rounded coordinate-based pattern
     old_to_new_mapping = {
+        # Old naming pattern
         "weather.station_de_ski_orange_mountain_weather": f"weather.{new_entity_id_base}",
         "sensor.station_de_ski_orange_mountain_weather_elevation": f"sensor.{new_entity_id_base}_elevation",
         "sensor.station_de_ski_orange_mountain_weather_humidity": f"sensor.{new_entity_id_base}_humidity",
         "sensor.station_de_ski_orange_mountain_weather_wind_speed": f"sensor.{new_entity_id_base}_wind_speed",
         "sensor.station_de_ski_orange_mountain_weather_wind_gust": f"sensor.{new_entity_id_base}_wind_gust",
         "sensor.station_de_ski_orange_mountain_weather_cloud_coverage": f"sensor.{new_entity_id_base}_cloud_coverage",
+        # Full precision coordinates (migrate to rounded for consistency)
+        f"weather.{old_full_precision_base}": f"weather.{new_entity_id_base}",
+        f"sensor.{old_full_precision_base}_elevation": f"sensor.{new_entity_id_base}_elevation",
+        f"sensor.{old_full_precision_base}_humidity": f"sensor.{new_entity_id_base}_humidity",
+        f"sensor.{old_full_precision_base}_wind_speed": f"sensor.{new_entity_id_base}_wind_speed",
+        f"sensor.{old_full_precision_base}_wind_gust": f"sensor.{new_entity_id_base}_wind_gust",
+        f"sensor.{old_full_precision_base}_cloud_coverage": f"sensor.{new_entity_id_base}_cloud_coverage",
     }
 
     for old_entity_id, new_entity_id in old_to_new_mapping.items():

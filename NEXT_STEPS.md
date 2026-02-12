@@ -1,32 +1,29 @@
-# Next Steps - Post v1.2.6
+# Next Steps - Post v1.3.0
 
 **Last Updated**: 2026-02-12
-**Current Version**: v1.2.6 ✅
-**Status**: Ready for v1.3.0 development
+**Current Version**: v1.3.0 ✅
+**Status**: Logo & Branding complete, awaiting brands PR approval
 **Roadmap**: See **ROADMAP.md** for comprehensive development plan
 
 ---
 
 ## 🎉 Recent Releases
 
-### v1.2.6 - Complete Cleanup (LATEST) ✅
+### v1.3.0 - Logo & Branding (LATEST) ✅
+- 🎨 Custom logo designed and integrated
+- 🏔️ Logo shows on GitHub README
+- 📦 Submitted to HA brands repository (PR #9547)
+- 📝 Complete documentation updates
+- **Status**: Released, HA UI pending brands approval
+
+### v1.2.6 - Complete Cleanup ✅
 - ✨ Device cleanup for removed massifs
 - 🧹 Entity cleanup for removed massifs
-- ⚙️ **Options Flow is now 100% complete!**
-
-### v1.2.x Series - Options Flow ✅
-- **v1.2.0**: Initial Options Flow implementation
-- **v1.2.1**: Fixed schema syntax (500 error)
-- **v1.2.2**: Improved error logging
-- **v1.2.3**: Fixed AttributeError
-- **v1.2.4**: Fixed TypeError
-- **v1.2.5**: Entity cleanup
-- **v1.2.6**: Device cleanup
+- ⚙️ **Options Flow is 100% complete!**
 
 ### v1.1.0 - All French Massifs ✅
 - 🗺️ Expanded from 11 to 35 massifs (all of France)
 - ✅ Northern Alps (23), Pyrenees (11), Corsica (1)
-- 📝 Updated documentation
 
 ---
 
@@ -34,7 +31,7 @@
 
 **See ROADMAP.md for detailed implementation plans, code examples, and testing strategies.**
 
-### ✅ v1.2.6 - Options Flow (COMPLETE)
+### ✅ v1.2.x - Options Flow (COMPLETE)
 
 **Priority 1: Options Flow ⚙️** ✅
 - ✅ Change massifs without reinstalling
@@ -43,86 +40,130 @@
 - ✅ Device cleanup for removed massifs
 - **Status**: Released in v1.2.0-v1.2.6
 
-### v1.3.0 Target (1-2 weeks)
+### ✅ v1.3.0 - Logo & Branding (COMPLETE)
 
-**Priority 2: Logo & Branding 🎨** (1-2 hours)
-- Custom 256×256 icon.png
-- Visual identity for HACS/HA
-- Quick win
+**Priority 2: Logo & Branding 🎨** ✅
+- ✅ Custom logo designed (minimalist pictogram)
+- ✅ Logo shows on GitHub README
+- ✅ Icon integrated (256×256 and 512×512)
+- ⏳ Brands PR #9547 submitted - awaiting approval
+- **Status**: Released, HA UI pending brands merge
+- **PR**: https://github.com/home-assistant/brands/pull/9547
 
-### v1.4.0 Target (2-3 weeks)
+### v1.4.0 Target (Next - 1-2 weeks)
 
 **Priority 3: Enhanced Documentation 📚** (3-4 hours)
 - Screenshots for all config steps
-- FAQ section
-- French translation
-- Troubleshooting guide
+- FAQ section (common questions)
+- French translation (translations/fr.json)
+- Expanded troubleshooting guide
+- CONTRIBUTING.md for developers
 
-**Priority 4: Diagnostics 🔧** (1 hour)
-- Add diagnostics.py
-- Export coordinator status
-- Easier issue debugging
+**Priority 4: Code Quality & Diagnostics 🔧** (4-6 hours)
+- Add diagnostics.py (export coordinator status)
+- Implement error retry logic with exponential backoff
+- Unit tests for coordinators
+- Integration tests for config flow
+- Enhanced logging for debugging
 
 ### Future Backlog
 
-- Code quality improvements (tests, error handling)
-- Advanced features (hourly risk, snow depth, alerts)
-- Multi-language support (German, Italian)
-- Custom Lovelace card
+- Advanced features (hourly risk evolution, snow depth, weather alerts)
+- Multi-language support (German, Italian, Spanish)
+- Custom Lovelace card for avalanche risk
+- More robust error handling
+- Performance optimizations
 
 ---
 
 ## 🚀 Immediate Next Action
 
-**Logo & Branding** - Design or source 256×256 icon.png
+**While waiting for brands PR:**
 
-**Why Logo Next:**
-1. Quick win (1-2 hours once logo ready)
-2. Improves visual identity in HACS/HA
-3. No code complexity
-4. High impact for minimal effort
+### Option A: Start Priority 3 - Enhanced Documentation 📚
 
-**Options:**
-- Commission designer (Fiverr, Upwork)
-- AI generation (DALL-E, Midjourney)
-- Royalty-free (Noun Project, Flaticon)
+**Why Documentation Next:**
+1. Reduces support burden (fewer GitHub issues)
+2. Improves onboarding for new users
+3. Can be done while waiting for brands PR
+4. High value for users
 
-**Reference**: See ROADMAP.md → Priority 2 for detailed plan
+**Tasks:**
+1. Take screenshots of config flow (3 steps)
+2. Add screenshots to README
+3. Create FAQ section
+4. Add French translation
+5. Expand troubleshooting guide
+
+**Estimated time**: 3-4 hours
+
+### Option B: Start Priority 4 - Code Quality 🔧
+
+**Why Diagnostics:**
+1. Easier to debug user issues
+2. Professional integration standard
+3. Helps with support
+
+**Tasks:**
+1. Add diagnostics.py
+2. Export coordinator status
+3. Redact sensitive data (BRA token)
+4. Test download diagnostics
+
+**Estimated time**: 1 hour for diagnostics, 3-5 hours for full quality improvements
 
 ---
 
 ## 📝 Session Notes
 
 **Today's Progress** (2026-02-12):
-- ✅ Implemented Options Flow feature (v1.2.0)
-- ✅ Fixed multiple bugs (v1.2.1-v1.2.4)
-- ✅ Added entity cleanup (v1.2.5)
-- ✅ Added device cleanup (v1.2.6)
-- ✅ **Options Flow is 100% complete and tested!**
+- ✅ Inspected HA installation via MCP (81 entities healthy)
+- ✅ Created minimalist pictogram logo via AI
+- ✅ Integrated logo into repo (multiple sizes)
+- ✅ Released v1.3.0 on GitHub
+- ✅ Submitted PR #9547 to HA brands repository
+- ✅ Updated all project documentation
 
-**Challenges Overcome**:
-- Voluptuous schema syntax issues
-- OptionsFlow base class property handling
-- Entity registry cleanup logic
-- Device registry cleanup logic
+**Logo Details**:
+- Ice blue background with white mountain peaks + sun
+- Files: 1024px (master), 512px, 256px
+- Source file: Affinity Designer (.afdesign)
+- Location: `logo files/` folder
+
+**Brands PR Status**:
+- PR: https://github.com/home-assistant/brands/pull/9547
+- Files: icon.png (256×256), icon@2x.png (512×512)
+- Status: Awaiting review (1-7 days typical)
+- Author: atacamalabs <hi@atacamalabs.cc>
 
 **For Next Session**:
-1. Work on Logo & Branding (Priority 2)
-2. Design/source 256×256 icon.png
-3. Add icon to custom_components/serac/
-4. Update README with logo header
+1. **Check brands PR for feedback** - May need revisions
+2. **Start Priority 3 (Documentation)** - Recommended
+3. **Or start Priority 4 (Diagnostics)** - Also valuable
 
 ---
 
 ## 🔗 Related Files
 
-- **ROADMAP.md** - Full development plan with code examples
-- **PROJECT_STATUS.md** - Current v1.1.0 status and architecture
-- **README.md** - User documentation
+- **ROADMAP.md** - Full development plan with implementation details
+- **PROJECT_STATUS.md** - Current v1.3.0 status and architecture
+- **SESSION_NOTES.md** - Complete session history (2026-02-11, 2026-02-12)
+- **README.md** - User documentation with logo
 - **MIGRATION_v1.md** - Migration guide from v0.6.0
 
 ---
 
-**Status**: v1.1.0 released, planning v1.2.0 🎉
+## 🎯 Priority Checklist
 
-**Next milestone**: v1.2.0 (Options Flow + Logo) - Target: 1-2 weeks
+- [x] **Priority 1**: Options Flow (v1.2.0-v1.2.6) ✅
+- [x] **Priority 2**: Logo & Branding (v1.3.0) ✅
+- [ ] **Priority 3**: Enhanced Documentation (v1.4.0) 📋 NEXT
+- [ ] **Priority 4**: Code Quality & Diagnostics (v1.4.0 or v1.5.0)
+
+---
+
+**Status**: v1.3.0 released 🎉
+
+**Next milestone**: v1.4.0 (Enhanced Documentation + Diagnostics) - Target: 2-3 weeks
+
+**Brands PR**: Awaiting approval - monitor PR #9547

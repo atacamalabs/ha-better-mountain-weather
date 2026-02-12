@@ -23,9 +23,10 @@ Serac (formerly "Better Mountain Weather") is a Home Assistant integration provi
 
 **v1.3.0 (Latest):**
 - 🎨 **Custom logo** - Professional serac/mountain icon with weather elements
-- 🏔️ **Visual identity** - Shows in Home Assistant Devices & Services
-- 📦 **HACS branding** - Logo appears in HACS integration listing
+- 🏔️ **Visual identity** - Logo shows on GitHub README and in repo
+- 📦 **Brands PR submitted** - Pending HA brands repository approval for UI display
 - 🌟 **README enhancement** - Logo displayed prominently on GitHub
+- 📝 **Complete documentation** - Added ROADMAP.md and SESSION_NOTES.md
 
 ### 🎉 What's New in v1.2.x Series
 
@@ -237,11 +238,13 @@ custom_components/serac/
 - ✅ Device cleanup for removed massifs
 - **Status**: Shipped in v1.2.0-v1.2.6
 
-### Priority 2: Logo & Branding 🎨
-- Custom logo for integration (QUICK WIN)
-- Icon for HACS listing
-- Improve visual identity
-- **Estimated effort**: 1-2 hours (once logo designed)
+### ✅ Priority 2: Logo & Branding (COMPLETE)
+- ✅ Custom logo designed (minimalist pictogram)
+- ✅ Logo shows on GitHub README
+- ✅ Icon integrated in repo (256×256 and 512×512)
+- ⏳ Brands PR submitted (PR #9547) - awaiting approval
+- **Status**: Shipped in v1.3.0, HA UI pending brands approval
+- **PR**: https://github.com/home-assistant/brands/pull/9547
 
 ### Priority 3: Enhanced Documentation 📚
 - Add screenshots to README

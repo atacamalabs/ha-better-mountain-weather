@@ -177,3 +177,178 @@ Developer Tools → States → Filter by "serac"
 
 **Session End**: 2026-02-11
 **Next Session**: 2026-02-12 (Options Flow implementation)
+
+---
+
+## Session: 2026-02-12
+
+### Summary
+
+Today we completed Priority 2 (Logo & Branding) including logo design, integration, GitHub release, and submission to Home Assistant brands repository. We also inspected the live HA installation to verify the integration health.
+
+### Completed Today
+
+1. ✅ **HA Integration Inspection via MCP**
+   - Connected to Home Assistant via MCP tools
+   - Found 81 Serac entities working correctly (73 weather + 8 avalanche)
+   - 2 devices properly organized (main + Aravis massif)
+   - No orphaned entities or devices - cleanup working perfectly
+   - Identified HACS update entity quirk (cosmetic only)
+
+2. ✅ **Logo Design & Creation**
+   - Created minimalist pictogram logo via AI generation
+   - Mountain peaks + sun element + ice blue color scheme
+   - Generated multiple sizes: 1024×1024 (master), 512×512, 256×256
+   - Saved source files in `logo files/` folder
+   - Affinity Designer source file included
+
+3. ✅ **Logo Integration**
+   - Added `custom_components/serac/icon.png` (256×256)
+   - Updated README.md with centered logo header
+   - Bumped version to v1.3.0
+   - Updated PROJECT_STATUS.md
+
+4. ✅ **GitHub Release v1.3.0**
+   - Created git tag v1.3.0
+   - Released on GitHub with detailed release notes
+   - Logo now visible on GitHub README
+   - Available for HACS update
+
+5. ✅ **Home Assistant Brands Repository Submission**
+   - Forked https://github.com/home-assistant/brands
+   - Created `custom_integrations/serac/` folder
+   - Added icon.png (256×256) and icon@2x.png (512×512)
+   - Submitted PR #9547: https://github.com/home-assistant/brands/pull/9547
+   - Fixed author attribution (atacamalabs <hi@atacamalabs.cc>)
+   - **Status**: Awaiting review (1-7 days typical)
+
+### Current State
+
+**Version**: v1.3.0 ✅
+**Repository**: https://github.com/atacamalabs/ha-serac
+**Status**: Production ready with logo, brands PR pending
+
+**Key Achievements**:
+- ✅ Logo shows on GitHub README
+- ✅ Logo integrated in repo files
+- ⏳ HA UI display pending brands PR approval
+- ✅ All documentation updated
+
+### Logo & Branding Details
+
+**Design:**
+- Minimalist pictogram style
+- White mountain peaks on ice blue background
+- White sun circle in upper right
+- Clean, geometric, recognizable at all sizes
+
+**Files Created:**
+```
+logo files/
+├── serac logo 1024.png (master - 22K)
+├── serac logo 512.png (10K)
+├── serac logo 256.png (5.2K)
+├── icon.png (5.2K) - 256×256
+└── serac logo.afdesign (source file)
+
+custom_components/serac/
+└── icon.png (copied from logo files)
+```
+
+**Brands PR:**
+- PR #9547 on home-assistant/brands
+- Files: icon.png (256×256), icon@2x.png (512×512)
+- Author: atacamalabs
+- Awaiting maintainer review
+
+### Lessons Learned
+
+1. **Custom Integration Icons**
+   - Simply adding icon.png to custom_components/ is NOT enough
+   - Must submit to Home Assistant brands repository
+   - This is why most custom integrations don't show icons in HA UI
+   - Logo still shows on GitHub/HACS without brands approval
+
+2. **HACS Update Entity Quirk**
+   - `update.a_better_mountain_weather_update` has old entity ID
+   - Friendly name is correct ("Serac update")
+   - HACS generates entity IDs from repository identifier at first-add time
+   - Cosmetic issue only, entity works normally
+   - Decision: Accept as-is (not worth wiping HACS config)
+
+3. **Logo Design Process**
+   - Midjourney kept generating cartoony results despite low stylization
+   - ChatGPT/DALL-E 3 better for literal, non-artistic icon designs
+   - Pictogram style keywords: "signage", "wayfinding", "system icon"
+   - Worked well with "flat design, minimalistic, geometric" prompts
+
+### Files Modified/Created Today
+
+1. `custom_components/serac/icon.png` - NEW (256×256 logo)
+2. `custom_components/serac/manifest.json` - Version: 1.2.6 → 1.3.0
+3. `README.md` - Added logo header
+4. `PROJECT_STATUS.md` - Updated to v1.3.0
+5. `ROADMAP.md` - Committed (was untracked)
+6. `SESSION_NOTES.md` - Updated with today's session
+7. `logo files/` - NEW folder with all logo assets
+
+### External Actions
+
+1. **Git Commits:**
+   - Commit 764834e: "Release: Serac v1.3.0 - Logo & Branding"
+   - Pushed to main branch
+
+2. **GitHub Release:**
+   - Created v1.3.0 release tag
+   - Release URL: https://github.com/atacamalabs/ha-serac/releases/tag/v1.3.0
+
+3. **Brands Repository:**
+   - Forked atacamalabs/brands
+   - Branch: add-serac-integration
+   - Commit 90485717: "Add Serac custom integration branding"
+   - PR #9547 submitted and open
+
+### Next Session Plan
+
+**Priority 2 Status:** ✅ COMPLETE (pending brands approval for HA UI)
+
+**Options for Next Session:**
+1. **Wait for brands PR feedback** - May need revisions
+2. **Start Priority 3: Enhanced Documentation**
+   - Add screenshots to README
+   - Create FAQ section
+   - Add French translation (translations/fr.json)
+   - **Estimated effort**: 3-4 hours
+3. **Start Priority 4: Code Quality & Diagnostics**
+   - Add diagnostics.py
+   - Implement error retry logic
+   - Unit tests
+   - **Estimated effort**: 4-6 hours
+
+**Recommendation**: Start Priority 3 while waiting for brands PR
+
+### Quick Reference
+
+**Check brands PR status:**
+```bash
+gh pr view 9547 --repo home-assistant/brands
+```
+
+**Monitor PR comments:**
+Visit: https://github.com/home-assistant/brands/pull/9547
+
+**Test logo in HA:**
+```
+Settings → Devices & Services → Find Serac
+(Will show once brands PR is merged)
+```
+
+**Current logo locations:**
+- ✅ GitHub README: https://github.com/atacamalabs/ha-serac
+- ✅ Repo files: custom_components/serac/icon.png
+- ⏳ HA UI: Pending brands PR merge
+
+---
+
+**Session End**: 2026-02-12
+**Next Session**: TBD (Start Priority 3 or await brands feedback)

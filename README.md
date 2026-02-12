@@ -8,9 +8,9 @@
 [![GitHub Release](https://img.shields.io/github/release/atacamalabs/ha-serac.svg)](https://github.com/atacamalabs/ha-serac/releases)
 [![License](https://img.shields.io/github/license/atacamalabs/ha-serac.svg)](LICENSE)
 
-**Mountain weather and avalanche forecasts for Home Assistant**
+**Mountain weather, avalanche forecasts, and weather alerts for Home Assistant**
 
-Serac is a comprehensive Home Assistant integration providing detailed mountain weather data and avalanche bulletins for the French Alps, Pyrenees, and Corsica. Get accurate forecasts from Météo-France AROME/ARPEGE models and real-time avalanche risk assessments.
+Serac is a comprehensive Home Assistant integration providing detailed mountain weather data, avalanche bulletins, and weather alerts for the French Alps, Pyrenees, and Corsica. Get accurate forecasts from Météo-France AROME/ARPEGE models, real-time avalanche risk assessments, and department-level weather alerts (Vigilance).
 
 ---
 
@@ -28,6 +28,15 @@ Serac is a comprehensive Home Assistant integration providing detailed mountain 
 - **6 air quality sensors** with 5-day forecasts:
   - European Air Quality Index (AQI)
   - PM2.5, PM10, NO₂, O₃, SO₂ levels
+
+### 🚨 Weather Alerts (Vigilance)
+- **2 vigilance sensors** for Météo-France weather alerts:
+  - Overall alert level (1-4 scale: Green/Yellow/Orange/Red)
+  - Alert color code for quick status check
+- **Department-based alerts** - Automatically detects French department from GPS coordinates
+- **Detailed phenomena tracking** - Wind, rain/flood, thunderstorms, snow/ice, fog, extreme temps
+- **Rich attributes** - All individual phenomena levels available for automations
+- **Requires separate API token** - Météo-France Vigilance API subscription needed
 
 ### ⚠️ Avalanche Bulletins
 - **8 avalanche sensors per massif**:
@@ -91,9 +100,10 @@ Serac uses a simple 3-step configuration flow:
 
 ![Configuration Step 2](docs/screenshots/config-step2.png)
 
-#### Step 3: Avalanche Data (Optional)
-- Add Météo-France BRA API token (optional)
+#### Step 3: Avalanche & Weather Alerts (Optional)
+- Add Météo-France BRA API token for avalanche bulletins (optional)
 - Select massifs for avalanche bulletins (0-35 massifs)
+- Add Météo-France Vigilance API token for weather alerts (optional)
 - Skip if you only want weather data
 
 ![Configuration Step 3](docs/screenshots/config-step3.png)
@@ -118,6 +128,18 @@ For avalanche bulletins, you need a Météo-France BRA API token:
 3. Subscribe to the **BRA (Bulletin Risque Avalanche)** API
 4. Copy your API key
 5. Enter it during Serac setup or leave empty to skip avalanche features
+
+### Getting Vigilance API Token (Optional)
+
+For weather alerts, you need a separate Météo-France Vigilance API token:
+
+1. Visit [Météo-France API Portal](https://portail-api.meteofrance.fr/)
+2. Create an account (or use your existing account)
+3. Subscribe to the **Vigilance (Bulletin Vigilance)** API
+4. Copy your API key
+5. Enter it during Serac setup or leave empty to skip weather alerts
+
+**Note**: BRA and Vigilance are separate API subscriptions and require different tokens.
 
 ---
 
@@ -194,6 +216,25 @@ entities:
   - entity: sensor.serac_chamonix_aravis_avalanche_accidental
 ```
 
+### Weather Alerts Card
+
+Display Météo-France Vigilance weather alerts:
+
+```yaml
+type: entities
+title: Weather Alerts - Haute-Savoie
+entities:
+  - entity: sensor.serac_chamonix_vigilance_level
+  - entity: sensor.serac_chamonix_vigilance_color
+```
+
+**Sensor Attributes** include detailed phenomena data:
+- `department`: French department code (e.g., "74")
+- `department_name`: Department name (e.g., "Haute-Savoie")
+- `phenomena`: Individual alert levels for wind, rain/flood, snow/ice, thunderstorms, fog, etc.
+- `wind_level`, `rain_flood_level`, `snow_ice_level`: Quick access to specific phenomena
+- `update_time`: When alerts were last updated
+
 ### Automation: High Wind Alert
 
 ```yaml
@@ -226,12 +267,52 @@ automation:
           message: "Avalanche risk level {{ states('sensor.serac_chamonix_aravis_avalanche_risk_today') }} in Aravis today!"
 ```
 
+### Automation: Weather Vigilance Alert
+
+Trigger notification when weather alerts reach Orange or Red level:
+
+```yaml
+automation:
+  - alias: "Severe Weather Alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.serac_chamonix_vigilance_level
+        above: 2  # Orange (3) or Red (4)
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "🚨 Severe Weather Alert"
+          message: >
+            {{ state_attr('sensor.serac_chamonix_vigilance_level', 'department_name') }}
+            is under {{ states('sensor.serac_chamonix_vigilance_color') }} alert!
+            Wind: {{ state_attr('sensor.serac_chamonix_vigilance_level', 'wind_color') | default('green') }}
+            Snow/Ice: {{ state_attr('sensor.serac_chamonix_vigilance_level', 'snow_ice_color') | default('green') }}
+```
+
+### Automation: High Wind Vigilance
+
+Trigger on high wind phenomenon specifically:
+
+```yaml
+automation:
+  - alias: "High Wind Vigilance"
+    trigger:
+      - platform: template
+        value_template: "{{ state_attr('sensor.serac_chamonix_vigilance_level', 'wind_level') | int > 2 }}"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "💨 Wind Alert"
+          message: "High wind alert ({{ state_attr('sensor.serac_chamonix_vigilance_level', 'wind_color') }}) in effect!"
+```
+
 ---
 
 ## Data Sources
 
 - **Weather Forecasts**: [Open-Meteo](https://open-meteo.com/) (Météo-France AROME 2.5km & ARPEGE models)
 - **Avalanche Bulletins**: [Météo-France BRA](https://meteofrance.com/meteo-montagne) (Bulletin Risque Avalanche)
+- **Weather Alerts**: [Météo-France Vigilance](https://portail-api.meteofrance.fr/) (Bulletin Vigilance)
 - **Air Quality**: Open-Meteo European AQI
 
 All data is provided by **Météo-France**, the French national meteorological service.
@@ -243,6 +324,7 @@ All data is provided by **Météo-France**, the French national meteorological s
 - **Weather Data**: Every 1 hour
 - **Air Quality**: Every 1 hour
 - **Avalanche Bulletins**: Every 6 hours (published once daily)
+- **Weather Alerts (Vigilance)**: Every 6 hours
 
 ---
 

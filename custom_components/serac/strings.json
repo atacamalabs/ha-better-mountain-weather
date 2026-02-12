@@ -26,15 +26,17 @@
         }
       },
       "massifs": {
-        "title": "Avalanche Data (Optional)",
-        "description": "Optionally add Météo-France BRA API token and select massifs for avalanche bulletins. You can skip this step if you only want weather data.",
+        "title": "Avalanche & Weather Alerts (Optional)",
+        "description": "Optionally add Météo-France API tokens for avalanche bulletins and weather alerts. You can skip this step if you only want weather data.",
         "data": {
           "bra_token": "BRA API Token (optional)",
-          "massif_ids": "Select Massifs (optional)"
+          "massif_ids": "Select Massifs (optional)",
+          "vigilance_token": "Vigilance API Token (optional)"
         },
         "data_description": {
           "bra_token": "Météo-France API key for avalanche bulletins",
-          "massif_ids": "Select one or more massifs for avalanche risk data"
+          "massif_ids": "Select one or more massifs for avalanche risk data",
+          "vigilance_token": "Météo-France API key for weather alerts (Vigilance). Separate subscription required."
         }
       }
     },
@@ -53,14 +55,16 @@
     "step": {
       "init": {
         "title": "Serac Configuration",
-        "description": "Change your massif selection or BRA API token. The integration will reload automatically to apply changes.",
+        "description": "Change your massif selection, BRA API token, or Vigilance API token. The integration will reload automatically to apply changes.",
         "data": {
           "bra_token": "BRA API Token (optional)",
-          "massif_ids": "Select Massifs (optional)"
+          "massif_ids": "Select Massifs (optional)",
+          "vigilance_token": "Vigilance API Token (optional)"
         },
         "data_description": {
           "bra_token": "Météo-France API key for avalanche bulletins. Leave empty to remove avalanche data.",
-          "massif_ids": "Select one or more massifs for avalanche risk data. Deselect all to remove avalanche sensors."
+          "massif_ids": "Select one or more massifs for avalanche risk data. Deselect all to remove avalanche sensors.",
+          "vigilance_token": "Météo-France API key for weather alerts. Leave empty to remove vigilance sensors."
         }
       }
     }

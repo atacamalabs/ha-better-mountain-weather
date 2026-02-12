@@ -18,6 +18,7 @@ from .const import (
     CONF_ENTITY_PREFIX,
     CONF_LOCATION_NAME,
     CONF_MASSIF_IDS,
+    CONF_VIGILANCE_TOKEN,
     DOMAIN,
     MASSIF_IDS,
 )
@@ -237,6 +238,10 @@ class SeracConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if user_input.get(CONF_BRA_TOKEN):
                 self._data[CONF_BRA_TOKEN] = user_input[CONF_BRA_TOKEN]
 
+            # Store Vigilance token if provided (optional)
+            if user_input.get(CONF_VIGILANCE_TOKEN):
+                self._data[CONF_VIGILANCE_TOKEN] = user_input[CONF_VIGILANCE_TOKEN]
+
             # Create the config entry
             latitude = self._data[CONF_LATITUDE]
             longitude = self._data[CONF_LONGITUDE]
@@ -256,12 +261,16 @@ class SeracConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Optional(
                     CONF_BRA_TOKEN,
-                    description="Météo-France API key for avalanche bulletins (optional)"
+                    description="Météo-France BRA API token for avalanche bulletins (optional)"
                 ): str,
                 vol.Optional(
                     CONF_MASSIF_IDS,
                     description="Select massifs for avalanche bulletins (requires BRA token)"
                 ): cv.multi_select(massif_options),
+                vol.Optional(
+                    CONF_VIGILANCE_TOKEN,
+                    description="Météo-France Vigilance API token for weather alerts (optional)"
+                ): str,
             }
         )
 
@@ -296,6 +305,13 @@ class SeracOptionsFlow(config_entries.OptionsFlow):
                 # User cleared token or didn't provide one, remove it
                 new_data.pop(CONF_BRA_TOKEN, None)
 
+            # Update Vigilance token if provided, or remove if empty
+            if user_input.get(CONF_VIGILANCE_TOKEN):
+                new_data[CONF_VIGILANCE_TOKEN] = user_input[CONF_VIGILANCE_TOKEN].strip()
+            elif CONF_VIGILANCE_TOKEN in new_data:
+                # User cleared token or didn't provide one, remove it
+                new_data.pop(CONF_VIGILANCE_TOKEN, None)
+
             # Update config entry
             self.hass.config_entries.async_update_entry(
                 self.config_entry, data=new_data
@@ -308,14 +324,16 @@ class SeracOptionsFlow(config_entries.OptionsFlow):
 
         # Get current values
         current_massifs = self.config_entry.data.get(CONF_MASSIF_IDS, [])
-        current_token = self.config_entry.data.get(CONF_BRA_TOKEN, "")
+        current_bra_token = self.config_entry.data.get(CONF_BRA_TOKEN, "")
+        current_vigilance_token = self.config_entry.data.get(CONF_VIGILANCE_TOKEN, "")
 
         # Create massif options for multi-select
         massif_options = {str(num_id): name for num_id, (name, _) in MASSIF_IDS.items()}
 
         data_schema = vol.Schema({
-            vol.Optional(CONF_BRA_TOKEN, default=current_token): str,
+            vol.Optional(CONF_BRA_TOKEN, default=current_bra_token): str,
             vol.Optional(CONF_MASSIF_IDS, default=current_massifs): cv.multi_select(massif_options),
+            vol.Optional(CONF_VIGILANCE_TOKEN, default=current_vigilance_token): str,
         })
 
         return self.async_show_form(

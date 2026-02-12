@@ -12,16 +12,18 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from .api.airquality_client import AirQualityClient
 from .api.bra_client import BraApiError, BraClient
 from .api.openmeteo_client import OpenMeteoApiError, OpenMeteoClient
+from .api.vigilance_client import VigilanceApiError, VigilanceClient
 from .const import (
     CONF_BRA_TOKEN,
     CONF_LOCATION_NAME,
     CONF_MASSIF_ID,
     CONF_MASSIF_IDS,
     CONF_MASSIF_NAME,
+    CONF_VIGILANCE_TOKEN,
     DOMAIN,
     MASSIF_IDS,
 )
-from .coordinator import AromeCoordinator, BraCoordinator
+from .coordinator import AromeCoordinator, BraCoordinator, VigilanceCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -216,6 +218,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """
     # Extract configuration
     bra_token = entry.data.get(CONF_BRA_TOKEN)
+    vigilance_token = entry.data.get(CONF_VIGILANCE_TOKEN)
     latitude = entry.data[CONF_LATITUDE]
     longitude = entry.data[CONF_LONGITUDE]
     location_name = entry.data[CONF_LOCATION_NAME]
@@ -326,6 +329,51 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Store BRA coordinators
     if bra_coordinators:
         hass.data[DOMAIN][entry.entry_id]["bra_coordinators"] = bra_coordinators
+
+    # Initialize Vigilance coordinator if token is provided
+    vigilance_coordinator = None
+    if vigilance_token:
+        _LOGGER.debug(
+            "Setting up Vigilance coordinator for %s (lat=%.4f, lon=%.4f)",
+            location_name,
+            latitude,
+            longitude,
+        )
+        try:
+            vigilance_client = VigilanceClient(
+                api_token=vigilance_token,
+                latitude=latitude,
+                longitude=longitude,
+            )
+            vigilance_coordinator = VigilanceCoordinator(
+                hass=hass,
+                client=vigilance_client,
+                location_name=location_name,
+            )
+            # Fetch initial vigilance data
+            await vigilance_coordinator.async_config_entry_first_refresh()
+            _LOGGER.info(
+                "Successfully set up Vigilance coordinator for %s (dept: %s)",
+                location_name,
+                vigilance_client._department,
+            )
+        except VigilanceApiError as err:
+            _LOGGER.warning(
+                "Error setting up Vigilance coordinator for %s (weather alerts unavailable): %s",
+                location_name,
+                err,
+            )
+            # Don't fail setup if Vigilance is unavailable
+        except Exception as err:
+            _LOGGER.warning(
+                "Unexpected error setting up Vigilance coordinator for %s: %s",
+                location_name,
+                err,
+            )
+
+    # Store Vigilance coordinator
+    if vigilance_coordinator:
+        hass.data[DOMAIN][entry.entry_id]["vigilance_coordinator"] = vigilance_coordinator
 
     # Migrate old entity IDs and remove unavailable sensors
     await async_migrate_entity_ids(hass, entry)

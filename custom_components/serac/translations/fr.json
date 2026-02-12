@@ -26,15 +26,17 @@
         }
       },
       "massifs": {
-        "title": "Données d'avalanche (Optionnel)",
-        "description": "Ajoutez optionnellement un jeton API BRA Météo-France et sélectionnez des massifs pour les bulletins d'avalanche. Vous pouvez passer cette étape si vous voulez uniquement les données météo.",
+        "title": "Avalanches & Alertes météo (Optionnel)",
+        "description": "Ajoutez optionnellement des jetons API Météo-France pour les bulletins d'avalanche et les alertes météo. Vous pouvez passer cette étape si vous voulez uniquement les données météo.",
         "data": {
           "bra_token": "Jeton API BRA (optionnel)",
-          "massif_ids": "Sélectionner les massifs (optionnel)"
+          "massif_ids": "Sélectionner les massifs (optionnel)",
+          "vigilance_token": "Jeton API Vigilance (optionnel)"
         },
         "data_description": {
           "bra_token": "Clé API Météo-France pour les bulletins d'avalanche",
-          "massif_ids": "Sélectionnez un ou plusieurs massifs pour les données de risque d'avalanche"
+          "massif_ids": "Sélectionnez un ou plusieurs massifs pour les données de risque d'avalanche",
+          "vigilance_token": "Clé API Météo-France pour les alertes météo (Vigilance). Abonnement séparé requis."
         }
       }
     },
@@ -53,14 +55,16 @@
     "step": {
       "init": {
         "title": "Configuration de Serac",
-        "description": "Modifiez votre sélection de massifs ou votre jeton API BRA. L'intégration se rechargera automatiquement pour appliquer les modifications.",
+        "description": "Modifiez votre sélection de massifs, votre jeton API BRA ou votre jeton API Vigilance. L'intégration se rechargera automatiquement pour appliquer les modifications.",
         "data": {
           "bra_token": "Jeton API BRA (optionnel)",
-          "massif_ids": "Sélectionner les massifs (optionnel)"
+          "massif_ids": "Sélectionner les massifs (optionnel)",
+          "vigilance_token": "Jeton API Vigilance (optionnel)"
         },
         "data_description": {
           "bra_token": "Clé API Météo-France pour les bulletins d'avalanche. Laissez vide pour supprimer les données d'avalanche.",
-          "massif_ids": "Sélectionnez un ou plusieurs massifs pour les données de risque d'avalanche. Désélectionnez tout pour supprimer les capteurs d'avalanche."
+          "massif_ids": "Sélectionnez un ou plusieurs massifs pour les données de risque d'avalanche. Désélectionnez tout pour supprimer les capteurs d'avalanche.",
+          "vigilance_token": "Clé API Météo-France pour les alertes météo. Laissez vide pour supprimer les capteurs de vigilance."
         }
       }
     }

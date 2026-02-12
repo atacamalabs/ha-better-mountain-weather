@@ -15,7 +15,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .api.airquality_client import AirQualityApiError, AirQualityClient
 from .api.bra_client import BraApiError, BraClient
 from .api.openmeteo_client import OpenMeteoApiError, OpenMeteoClient
-from .const import AROME_UPDATE_INTERVAL, BRA_UPDATE_INTERVAL, DOMAIN
+from .api.vigilance_client import VigilanceApiError, VigilanceClient
+from .const import AROME_UPDATE_INTERVAL, BRA_UPDATE_INTERVAL, VIGILANCE_UPDATE_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -384,6 +385,120 @@ class BraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "Unexpected error fetching BRA data for %s (massif ID: %d) after %.2fs: %s (type: %s)",
                 self.massif_name,
                 self.massif_id,
+                elapsed_time,
+                err,
+                type(err).__name__,
+            )
+            raise UpdateFailed(f"Unexpected error: {err}") from err
+
+
+class VigilanceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+    """Coordinator for Météo-France Vigilance weather alerts."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        client: VigilanceClient,
+        location_name: str,
+    ) -> None:
+        """Initialize the Vigilance coordinator.
+
+        Args:
+            hass: Home Assistant instance
+            client: Vigilance API client
+            location_name: Name of the location for logging
+        """
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=f"{DOMAIN}_{location_name}_vigilance",
+            update_interval=VIGILANCE_UPDATE_INTERVAL,
+        )
+        self.client = client
+        self.location_name = location_name
+
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Fetch data from Vigilance API.
+
+        Returns:
+            Dictionary containing vigilance alert data
+
+        Raises:
+            UpdateFailed: If update fails
+        """
+        start_time = time.monotonic()
+        try:
+            _LOGGER.debug(
+                "Starting Vigilance alert update for %s (lat=%.4f, lon=%.4f, dept=%s)",
+                self.location_name,
+                self.client._latitude,
+                self.client._longitude,
+                self.client._department,
+            )
+
+            # Fetch vigilance data with retry logic
+            vigilance_data = await async_retry_with_backoff(
+                self.client.async_get_current_vigilance,
+                context=f"Fetch vigilance alerts for {self.location_name}",
+            )
+
+            elapsed_time = time.monotonic() - start_time
+
+            if not vigilance_data.get("has_data"):
+                reason = vigilance_data.get("error", "unknown")
+                if reason == "not_in_france":
+                    _LOGGER.info(
+                        "Vigilance alerts not available for %s after %.2fs - coordinates not in France (lat=%.4f, lon=%.4f)",
+                        self.location_name,
+                        elapsed_time,
+                        self.client._latitude,
+                        self.client._longitude,
+                    )
+                else:
+                    _LOGGER.warning(
+                        "No vigilance data available for %s (dept %s) after %.2fs - reason: %s",
+                        self.location_name,
+                        self.client._department,
+                        elapsed_time,
+                        reason,
+                    )
+                return {"has_data": False, "error": reason}
+
+            _LOGGER.info(
+                "Vigilance update completed for %s in %.2fs: %s (%s, level %d), %d phenomena tracked",
+                self.location_name,
+                elapsed_time,
+                vigilance_data.get("department_name"),
+                vigilance_data.get("overall_color"),
+                vigilance_data.get("overall_level", 0),
+                len(vigilance_data.get("phenomena", {})),
+            )
+            _LOGGER.debug(
+                "Vigilance details for %s: dept=%s, update_time=%s, phenomena=%s",
+                self.location_name,
+                vigilance_data.get("department"),
+                vigilance_data.get("update_time"),
+                list(vigilance_data.get("phenomena", {}).keys()),
+            )
+
+            return vigilance_data
+
+        except VigilanceApiError as err:
+            elapsed_time = time.monotonic() - start_time
+            _LOGGER.error(
+                "Failed to fetch vigilance data for %s (dept %s) after %.2fs: %s",
+                self.location_name,
+                self.client._department,
+                elapsed_time,
+                err,
+            )
+            raise UpdateFailed(f"Error fetching vigilance data: {err}") from err
+        except Exception as err:
+            elapsed_time = time.monotonic() - start_time
+            _LOGGER.error(
+                "Unexpected error fetching vigilance data for %s (dept %s) after %.2fs: %s (type: %s)",
+                self.location_name,
+                self.client._department,
                 elapsed_time,
                 err,
                 type(err).__name__,

@@ -584,6 +584,17 @@ async def async_setup_entry(
                 bra_coordinator, description, location_name, entity_prefix, latitude, longitude, massif_id, massif_name
             ))
 
+    # Add Vigilance (weather alert) sensors if coordinator exists
+    vigilance_coordinator = hass.data[DOMAIN][entry.entry_id].get("vigilance_coordinator")
+    if vigilance_coordinator:
+        # Add level and color sensors
+        entities.append(VigilanceSensor(
+            vigilance_coordinator, location_name, entity_prefix, latitude, longitude, "level"
+        ))
+        entities.append(VigilanceSensor(
+            vigilance_coordinator, location_name, entity_prefix, latitude, longitude, "color"
+        ))
+
     async_add_entities(entities, True)
 
 
@@ -750,6 +761,109 @@ class BraSensor(CoordinatorEntity[BraCoordinator], SensorEntity):
             return False
 
         # If data exists but has_data is False (out of season), mark unavailable
+        if self.coordinator.data and not self.coordinator.data.get("has_data"):
+            return False
+
+        return True
+
+
+class VigilanceSensor(CoordinatorEntity, SensorEntity):
+    """Sensor entity for Météo-France Vigilance weather alerts."""
+
+    _attr_has_entity_name = False
+    _attr_attribution = "Data from Météo-France Vigilance"
+
+    def __init__(
+        self,
+        coordinator,
+        location_name: str,
+        entity_prefix: str,
+        latitude: float,
+        longitude: float,
+        sensor_type: str,
+    ) -> None:
+        """Initialize the Vigilance sensor."""
+        super().__init__(coordinator)
+        self._location_name = location_name
+        self._entity_prefix = entity_prefix
+        self._latitude = latitude
+        self._longitude = longitude
+        self._sensor_type = sensor_type
+
+        # Set entity_id: sensor.serac_{prefix}_vigilance_{type}
+        self.entity_id = f"sensor.serac_{entity_prefix}_vigilance_{sensor_type}"
+
+        # Unique ID uses coordinates and sensor type
+        self._attr_unique_id = f"serac_{latitude}_{longitude}_vigilance_{sensor_type}"
+
+        # Set name and icon based on sensor type
+        if sensor_type == "level":
+            self._attr_name = f"Serac {entity_prefix.title()} Vigilance Level"
+            self._attr_icon = "mdi:alert"
+            self._attr_state_class = None
+            self._attr_native_unit_of_measurement = None
+        elif sensor_type == "color":
+            self._attr_name = f"Serac {entity_prefix.title()} Vigilance Color"
+            self._attr_icon = "mdi:palette"
+            self._attr_state_class = None
+            self._attr_native_unit_of_measurement = None
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"serac_{self._latitude}_{self._longitude}")},
+            name=f"{self._location_name} (Serac)",
+            manufacturer=MANUFACTURER,
+            model="Weather & Avalanche Data",
+            entry_type=DeviceEntryType.SERVICE,
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        if not self.coordinator.data or not self.coordinator.data.get("has_data"):
+            return {}
+
+        attrs = {
+            "department": self.coordinator.data.get("department"),
+            "department_name": self.coordinator.data.get("department_name"),
+            "update_time": self.coordinator.data.get("update_time"),
+        }
+
+        # Add all phenomena data
+        phenomena = self.coordinator.data.get("phenomena", {})
+        if phenomena:
+            attrs["phenomena"] = phenomena
+
+            # Also add individual phenomena as flat attributes for easier automation
+            for phenom_name, phenom_data in phenomena.items():
+                attrs[f"{phenom_name}_level"] = phenom_data.get("level")
+                attrs[f"{phenom_name}_color"] = phenom_data.get("color")
+
+        return attrs
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the sensor."""
+        if not self.coordinator.data or not self.coordinator.data.get("has_data"):
+            return None
+
+        if self._sensor_type == "level":
+            return self.coordinator.data.get("overall_level")
+        elif self._sensor_type == "color":
+            return self.coordinator.data.get("overall_color")
+
+        return None
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        # Vigilance sensor is available if coordinator succeeded and has data
+        if not self.coordinator.last_update_success:
+            return False
+
+        # If data exists but has_data is False (not in France), mark unavailable
         if self.coordinator.data and not self.coordinator.data.get("has_data"):
             return False
 

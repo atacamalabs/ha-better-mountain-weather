@@ -11,6 +11,7 @@ PLATFORMS: Final = ["weather", "sensor"]
 # Configuration keys
 CONF_AROME_TOKEN: Final = "arome_token"
 CONF_BRA_TOKEN: Final = "bra_token"
+CONF_VIGILANCE_TOKEN: Final = "vigilance_token"
 CONF_LOCATION_NAME: Final = "location_name"
 CONF_ENTITY_PREFIX: Final = "entity_prefix"
 CONF_MASSIF_ID: Final = "massif_id"
@@ -20,6 +21,7 @@ CONF_MASSIF_IDS: Final = "massif_ids"
 # Update intervals
 AROME_UPDATE_INTERVAL: Final = timedelta(hours=1)
 BRA_UPDATE_INTERVAL: Final = timedelta(hours=6)
+VIGILANCE_UPDATE_INTERVAL: Final = timedelta(hours=6)
 
 # API Configuration
 API_TIMEOUT: Final = 30
@@ -205,3 +207,63 @@ SENSOR_TYPE_AVALANCHE_SUMMARY: Final = "avalanche_summary"
 SENSOR_TYPE_AVALANCHE_BULLETIN_DATE: Final = "avalanche_bulletin_date"
 SENSOR_TYPE_AVALANCHE_RISK_HIGH_ALT: Final = "avalanche_risk_high_altitude"
 SENSOR_TYPE_AVALANCHE_RISK_LOW_ALT: Final = "avalanche_risk_low_altitude"
+
+# Sensor types for Vigilance (Weather Alerts)
+SENSOR_TYPE_VIGILANCE_LEVEL: Final = "vigilance_level"
+SENSOR_TYPE_VIGILANCE_COLOR: Final = "vigilance_color"
+
+# Vigilance color codes (1-4 scale)
+VIGILANCE_COLOR_CODES: Final = {
+    1: "green",      # Vert - No particular vigilance
+    2: "yellow",     # Jaune - Be attentive
+    3: "orange",     # Orange - Be very vigilant
+    4: "red",        # Rouge - Absolute vigilance
+}
+
+# Vigilance phenomenon types
+VIGILANCE_PHENOMENA: Final = {
+    1: "wind",
+    2: "rain_flood",
+    3: "thunderstorm",
+    4: "flood",
+    5: "snow_ice",
+    6: "extreme_heat",
+    7: "extreme_cold",
+    8: "avalanche",
+    9: "fog",
+}
+
+# French department boundaries for GPS to department code mapping
+# Format: dept_code -> (name, (min_lat, max_lat, min_lon, max_lon))
+DEPARTMENT_BOUNDARIES: Final = {
+    # Alps departments
+    "01": {"name": "Ain", "bounds": (45.5, 46.5, 4.7, 5.9)},
+    "04": {"name": "Alpes-de-Haute-Provence", "bounds": (43.7, 44.7, 5.5, 7.0)},
+    "05": {"name": "Hautes-Alpes", "bounds": (44.2, 45.2, 5.5, 7.2)},
+    "06": {"name": "Alpes-Maritimes", "bounds": (43.5, 44.4, 6.6, 7.7)},
+    "26": {"name": "Drôme", "bounds": (44.1, 45.2, 4.7, 5.8)},
+    "38": {"name": "Isère", "bounds": (44.7, 45.9, 5.0, 6.9)},
+    "73": {"name": "Savoie", "bounds": (45.0, 45.8, 5.6, 7.2)},
+    "74": {"name": "Haute-Savoie", "bounds": (45.7, 46.4, 5.8, 7.0)},
+
+    # Pyrenees departments
+    "09": {"name": "Ariège", "bounds": (42.5, 43.3, 0.7, 2.2)},
+    "11": {"name": "Aude", "bounds": (42.6, 43.5, 1.7, 3.2)},
+    "31": {"name": "Haute-Garonne", "bounds": (42.7, 43.9, 0.4, 1.9)},
+    "64": {"name": "Pyrénées-Atlantiques", "bounds": (42.8, 43.6, -1.8, 0.0)},
+    "65": {"name": "Hautes-Pyrénées", "bounds": (42.7, 43.6, -0.5, 0.6)},
+    "66": {"name": "Pyrénées-Orientales", "bounds": (42.3, 43.0, 1.7, 3.2)},
+
+    # Corsica
+    "2A": {"name": "Corse-du-Sud", "bounds": (41.3, 42.4, 8.5, 9.4)},
+    "2B": {"name": "Haute-Corse", "bounds": (42.0, 43.0, 8.5, 9.6)},
+
+    # Other French departments (for reference, incomplete list)
+    "07": {"name": "Ardèche", "bounds": (44.3, 45.4, 3.9, 4.9)},
+    "25": {"name": "Doubs", "bounds": (46.6, 47.6, 5.8, 7.0)},
+    "39": {"name": "Jura", "bounds": (46.3, 47.3, 5.3, 6.2)},
+    "48": {"name": "Lozère", "bounds": (44.1, 44.9, 3.0, 4.0)},
+    "63": {"name": "Puy-de-Dôme", "bounds": (45.3, 46.2, 2.4, 3.9)},
+    "68": {"name": "Haut-Rhin", "bounds": (47.4, 48.3, 6.8, 7.6)},
+    "88": {"name": "Vosges", "bounds": (47.8, 48.5, 5.4, 7.2)},
+}

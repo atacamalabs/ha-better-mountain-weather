@@ -520,23 +520,409 @@ async def test_arome_coordinator_success(hass):
 
 ## Implementation Order Recommendation
 
-### Phase 1 (Immediate - Week 1)
-1. **Options Flow** (2-3 hours) - Highest user value, unblocks iteration
-2. **Logo & Branding** (1-2 hours) - Quick win, improves visibility
+### ✅ Phase 1 (COMPLETE - v1.2.x)
+1. **Options Flow** (2-3 hours) - ✅ Released in v1.2.0-v1.2.6
+2. **Logo & Branding** (1-2 hours) - ✅ Released in v1.3.0
 
-**Expected outcome**: Users can modify configuration, Serac has visual identity
+**Outcome**: Users can modify configuration, Serac has visual identity
 
-### Phase 2 (Short-term - Week 2-3)
-3. **Enhanced Documentation** (3-4 hours) - Reduces support burden
+### Phase 2 (Current - v1.4.0 target)
+3. **Enhanced Documentation** (3-4 hours) - Screenshots, FAQ, French translation
 4. **Diagnostics** (1 hour) - Easier issue debugging
 
 **Expected outcome**: Better onboarding, easier troubleshooting
 
-### Phase 3 (Medium-term - Month 1-2)
-5. **Code Quality** (3-5 hours) - Tests, error handling, logging
-6. **Advanced Features** (variable) - Based on user feedback
+### Phase 3 (Near-term - v1.5.0 target)
+5. **Weather Alerts (Vigilance)** (3-4 hours) - Mountain safety feature
+6. **Code Quality** (3-5 hours) - Tests, error handling, logging
 
-**Expected outcome**: More robust, maintainable codebase
+**Expected outcome**: Comprehensive mountain safety data, robust codebase
+
+### Phase 4 (Long-term - v2.0.0+)
+7. **Advanced Features** (variable) - Based on user feedback
+
+**Expected outcome**: Mature, feature-rich integration
+
+---
+
+### Priority 5: Weather Alerts (Vigilance) ⚠️ (MOUNTAIN SAFETY)
+
+**Why This Matters:**
+- **Mountain safety critical**: Storm warnings, high wind alerts, snow/ice warnings
+- **Natural complement**: Fits perfectly with weather + avalanche data
+- **Same API ecosystem**: Uses Météo-France (like BRA), same token workflow
+- **User expectation**: Mountain users need severe weather alerts
+- **Competitive advantage**: HA's meteo_france integration uses city search, Serac can use GPS coordinates
+
+**User Value**: ⭐⭐⭐⭐ (High safety value for mountain users)
+**Effort**: 🔨🔨🔨 (3-4 hours)
+**Dependencies**: Priority 3 (Documentation) should be done first
+
+#### What Needs to Be Done
+
+1. **Add Vigilance API client** - New vigilance_client.py for Météo-France alerts
+2. **Create Vigilance coordinator** - 6-hour update interval (same as BRA)
+3. **Add alert sensors** - Overall level + individual phenomenon types
+4. **Update config flow** - Mention vigilance feature alongside BRA
+5. **Update documentation** - Explain color codes and alert types
+
+#### Weather Alert System Overview
+
+**Météo-France Vigilance** provides department-level weather alerts with:
+- **Color codes**: Green (safe), Yellow (watch), Orange (warning), Red (extreme danger)
+- **Phenomena types**: Wind, rain-flood, thunderstorms, snow/ice, avalanche risk, extreme heat/cold, fog
+- **Coverage**: All French departments + Andorra
+- **Updates**: Real-time + 24-hour evolution timeline
+
+#### Implementation Approach
+
+**File: `custom_components/serac/api/vigilance_client.py`** (NEW)
+```python
+"""Météo-France Vigilance API client for weather alerts."""
+from __future__ import annotations
+
+import logging
+from typing import Any
+import aiohttp
+
+_LOGGER = logging.getLogger(__name__)
+
+# Department code lookup based on GPS coordinates
+DEPARTMENT_BOUNDARIES = {
+    # Alps departments (examples)
+    "01": {"name": "Ain", "bounds": (45.0, 47.0, 4.7, 5.9)},
+    "74": {"name": "Haute-Savoie", "bounds": (45.7, 46.4, 5.8, 7.0)},
+    "73": {"name": "Savoie", "bounds": (45.0, 45.8, 5.6, 7.2)},
+    # Add all French departments...
+}
+
+# Vigilance color codes
+COLOR_CODES = {
+    1: "green",      # Vert - No danger
+    2: "yellow",     # Jaune - Be attentive
+    3: "orange",     # Orange - Be very vigilant
+    4: "red",        # Rouge - Absolute vigilance
+}
+
+# Phenomenon types
+PHENOMENON_TYPES = {
+    1: "wind",
+    2: "rain_flood",
+    3: "thunderstorm",
+    4: "flood",
+    5: "snow_ice",
+    6: "extreme_heat",
+    7: "extreme_cold",
+    8: "avalanche",
+    9: "fog",
+}
+
+
+class VigilanceApiError(Exception):
+    """Exception raised for Vigilance API errors."""
+
+
+class VigilanceClient:
+    """Client for Météo-France Vigilance API."""
+
+    def __init__(self, api_token: str, latitude: float, longitude: float) -> None:
+        """Initialize the Vigilance client.
+
+        Args:
+            api_token: Météo-France API token (same as BRA)
+            latitude: Location latitude
+            longitude: Location longitude
+        """
+        self._api_token = api_token
+        self._latitude = latitude
+        self._longitude = longitude
+        self._base_url = "https://public-api.meteofrance.fr/public/DPVigilance/v1"
+        self._department = self._get_department_code(latitude, longitude)
+
+    def _get_department_code(self, lat: float, lon: float) -> str:
+        """Get department code from coordinates.
+
+        Args:
+            lat: Latitude
+            lon: Longitude
+
+        Returns:
+            Two-digit department code (e.g., "74" for Haute-Savoie)
+        """
+        # Find department by checking coordinate bounds
+        for dept_code, dept_info in DEPARTMENT_BOUNDARIES.items():
+            bounds = dept_info["bounds"]
+            if bounds[0] <= lat <= bounds[1] and bounds[2] <= lon <= bounds[3]:
+                return dept_code
+
+        # Fallback: use rough estimation
+        # This is simplified - real implementation should use proper geographic lookup
+        if 45.7 <= lat <= 46.4 and 5.8 <= lon <= 7.0:
+            return "74"  # Haute-Savoie
+        elif 45.0 <= lat <= 45.8 and 5.6 <= lon <= 7.2:
+            return "73"  # Savoie
+
+        return "74"  # Default to Haute-Savoie for Alps
+
+    async def async_get_current_vigilance(self) -> dict[str, Any]:
+        """Get current vigilance alerts for the department.
+
+        Returns:
+            Dictionary with vigilance data
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {"apikey": self._api_token}
+                url = f"{self._base_url}/cartevigilance/encours"
+
+                async with session.get(
+                    url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+
+                    # Extract data for our department
+                    department_data = self._extract_department_data(data, self._department)
+
+                    return {
+                        "department": self._department,
+                        "department_name": DEPARTMENT_BOUNDARIES.get(
+                            self._department, {}
+                        ).get("name", "Unknown"),
+                        "overall_level": department_data.get("overall_level", 1),
+                        "overall_color": COLOR_CODES.get(department_data.get("overall_level", 1)),
+                        "phenomena": department_data.get("phenomena", {}),
+                        "update_time": data.get("update_time"),
+                        "has_data": True,
+                    }
+
+        except aiohttp.ClientResponseError as err:
+            if err.status == 404:
+                _LOGGER.warning("No vigilance data available for department %s", self._department)
+                return {"has_data": False, "department": self._department}
+            _LOGGER.error("HTTP error getting vigilance: %s", err, exc_info=True)
+            raise VigilanceApiError(f"HTTP error: {err}") from err
+        except aiohttp.ClientError as err:
+            _LOGGER.error("Network error getting vigilance: %s", err, exc_info=True)
+            raise VigilanceApiError(f"Network error: {err}") from err
+        except Exception as err:
+            _LOGGER.error("Error getting vigilance: %s", err, exc_info=True)
+            raise VigilanceApiError(f"Failed to get vigilance: {err}") from err
+
+    def _extract_department_data(self, data: dict, dept_code: str) -> dict:
+        """Extract vigilance data for specific department from API response.
+
+        Args:
+            data: Full API response
+            dept_code: Department code (e.g., "74")
+
+        Returns:
+            Department-specific vigilance data
+        """
+        # Parse API response structure (simplified - adjust to actual API format)
+        # Real implementation depends on actual Météo-France API response structure
+        departments = data.get("zones", {})
+        dept_data = departments.get(dept_code, {})
+
+        return {
+            "overall_level": dept_data.get("niveau_vigilance", 1),
+            "phenomena": {
+                phenom_type: {
+                    "level": phenom_data.get("niveau", 1),
+                    "color": COLOR_CODES.get(phenom_data.get("niveau", 1)),
+                }
+                for phenom_type, phenom_data in dept_data.get("phenomenes", {}).items()
+            },
+        }
+```
+
+**File: `custom_components/serac/coordinator.py`** (UPDATE)
+```python
+# Add new VigilanceCoordinator class
+
+class VigilanceCoordinator(DataUpdateCoordinator):
+    """Coordinator for Météo-France Vigilance data."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        client: VigilanceClient,
+        location_name: str,
+    ) -> None:
+        """Initialize the coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=f"Serac Vigilance ({location_name})",
+            update_interval=timedelta(hours=6),  # Same as BRA
+        )
+        self._client = client
+        self.location_name = location_name
+
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Fetch vigilance data."""
+        try:
+            return await self._client.async_get_current_vigilance()
+        except VigilanceApiError as err:
+            raise UpdateFailed(f"Error fetching vigilance data: {err}") from err
+```
+
+**File: `custom_components/serac/sensor.py`** (UPDATE)
+```python
+# Add VigilanceSensor class
+
+class VigilanceSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for Météo-France Vigilance alerts."""
+
+    def __init__(
+        self,
+        coordinator: VigilanceCoordinator,
+        entity_prefix: str,
+        sensor_type: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._entity_prefix = entity_prefix
+        self._sensor_type = sensor_type
+        self._attr_has_entity_name = False
+
+    @property
+    def unique_id(self) -> str:
+        """Return unique ID."""
+        return f"serac_{self.coordinator._client._latitude}_{self.coordinator._client._longitude}_vigilance_{self._sensor_type}"
+
+    @property
+    def entity_id(self) -> str:
+        """Return entity ID."""
+        return f"sensor.serac_{self._entity_prefix}_vigilance_{self._sensor_type}"
+
+    @property
+    def name(self) -> str:
+        """Return name."""
+        if self._sensor_type == "level":
+            return f"Serac {self._entity_prefix.title()} Vigilance Level"
+        else:
+            return f"Serac {self._entity_prefix.title()} Vigilance {self._sensor_type.replace('_', ' ').title()}"
+
+    @property
+    def native_value(self):
+        """Return sensor value."""
+        if not self.coordinator.data.get("has_data"):
+            return None
+
+        if self._sensor_type == "level":
+            return self.coordinator.data.get("overall_level")
+        elif self._sensor_type == "color":
+            return self.coordinator.data.get("overall_color")
+        else:
+            # Individual phenomenon (wind, rain_flood, etc.)
+            phenomena = self.coordinator.data.get("phenomena", {})
+            phenom_data = phenomena.get(self._sensor_type, {})
+            return phenom_data.get("level")
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Return additional attributes."""
+        if not self.coordinator.data.get("has_data"):
+            return {}
+
+        return {
+            "department": self.coordinator.data.get("department"),
+            "department_name": self.coordinator.data.get("department_name"),
+            "update_time": self.coordinator.data.get("update_time"),
+            "phenomena": self.coordinator.data.get("phenomena", {}),
+        }
+```
+
+**File: `custom_components/serac/__init__.py`** (UPDATE)
+```python
+# In async_setup_entry, after BRA coordinators:
+
+    # Set up Vigilance coordinator if BRA token provided
+    vigilance_coordinator = None
+    if bra_token:
+        vigilance_client = VigilanceClient(bra_token, latitude, longitude)
+        vigilance_coordinator = VigilanceCoordinator(hass, vigilance_client, location_name)
+        await vigilance_coordinator.async_config_entry_first_refresh()
+
+    hass.data[DOMAIN][entry.entry_id]["vigilance_coordinator"] = vigilance_coordinator
+```
+
+#### Sensor Design
+
+**Sensors to create (when BRA token provided):**
+1. **Overall vigilance level** - `sensor.serac_{prefix}_vigilance_level`
+   - Value: 1-4 (Green/Yellow/Orange/Red)
+   - State class: measurement
+
+2. **Individual phenomena sensors** (optional - could be attributes instead):
+   - `sensor.serac_{prefix}_vigilance_wind`
+   - `sensor.serac_{prefix}_vigilance_rain_flood`
+   - `sensor.serac_{prefix}_vigilance_thunderstorm`
+   - `sensor.serac_{prefix}_vigilance_snow_ice`
+   - Each shows level 1-4 for that phenomenon type
+
+**Alternative simpler approach:** Just one sensor with all phenomena in attributes (like HA's meteo_france integration).
+
+#### Testing Plan
+
+1. **Get BRA API token** - Should work for both BRA and Vigilance endpoints
+2. **Test department detection** - Verify GPS → department code mapping works
+3. **Create vigilance coordinator** - Verify 6-hour update cycle
+4. **Check sensor values** - Verify level, color, phenomena attributes
+5. **Test without token** - Verify vigilance disabled when no BRA token
+6. **Test outside France** - Verify graceful handling for non-French coordinates
+
+#### Documentation Updates
+
+**README.md additions:**
+```markdown
+### ⚠️ Weather Alerts (Vigilance)
+
+When you provide a Météo-France BRA API token, Serac also fetches weather alerts (Vigilance) for your location:
+
+- **Overall vigilance level** (1-4 scale: Green, Yellow, Orange, Red)
+- **Individual alerts**: Wind, rain/flood, thunderstorms, snow/ice, fog, extreme temperatures
+- **Department-based**: Alerts cover the French department your coordinates fall within
+- **Update frequency**: Every 6 hours
+
+**Example sensors:**
+```yaml
+sensor.serac_chamonix_vigilance_level  # 2 (Yellow)
+# Attributes include:
+# - department: "74" (Haute-Savoie)
+# - phenomena: {wind: {level: 2, color: yellow}, snow_ice: {level: 1, color: green}}
+```
+
+**Use in automations:**
+```yaml
+automation:
+  - alias: "High Wind Vigilance Alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.serac_chamonix_vigilance_level
+        above: 2  # Orange or Red
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "⚠️ Weather Alert"
+          message: "Vigilance {{ states('sensor.serac_chamonix_vigilance_level') }} in effect!"
+```
+```
+
+#### Estimated Effort
+- API client implementation: 1.5 hours
+- Coordinator setup: 30 minutes
+- Sensor implementation: 1 hour
+- Testing: 1 hour
+- Documentation: 30 minutes
+- **Total: 3-4 hours**
+
+#### Future Enhancements
+- **Map department boundaries properly** - Use shapefile or API for accurate GPS → department
+- **Bulletin text** - Fetch full text descriptions of alerts
+- **24-hour evolution** - Show how alerts will change over next day
+- **Alert history** - Track when alerts were issued/lifted
 
 ---
 
@@ -545,7 +931,6 @@ async def test_arome_coordinator_success(hass):
 ### Advanced Data Features
 - **Hourly avalanche risk evolution** - Show risk changes throughout the day
 - **Snow depth sensors** - If API data becomes available
-- **Weather alerts/warnings** - Météo-France vigilance data
 - **Historical data tracking** - Track conditions over time
 
 ### UX Enhancements
@@ -562,26 +947,34 @@ async def test_arome_coordinator_success(hass):
 
 ## Success Metrics
 
-### v1.2.0 Goals (Options Flow + Logo)
-- [ ] Users can change massifs without reinstalling
-- [ ] BRA token can be added/removed via UI
-- [ ] Serac has custom logo in HA and HACS
-- [ ] No breaking changes
-- [ ] Zero GitHub issues about "can't change massifs"
+### ✅ v1.2.0 Goals (Options Flow + Logo) - COMPLETE
+- [x] Users can change massifs without reinstalling ✅
+- [x] BRA token can be added/removed via UI ✅
+- [x] Serac has custom logo in HA and HACS ✅
+- [x] No breaking changes ✅
+- [x] Zero GitHub issues about "can't change massifs" ✅
 
-### v1.3.0 Goals (Documentation + Diagnostics)
+### v1.4.0 Goals (Documentation + Diagnostics)
 - [ ] README has screenshots for all config steps
 - [ ] FAQ section answers top 5 user questions
 - [ ] French translation available
 - [ ] Diagnostics data includes coordinator status
 - [ ] Average issue resolution time < 24 hours
 
-### v2.0.0 Goals (Code Quality + Advanced Features)
-- [ ] Unit test coverage > 70%
-- [ ] Integration tests for all platforms
+### v1.5.0 Goals (Weather Alerts + Code Quality)
+- [ ] Weather alerts (Vigilance) for French departments
+- [ ] Overall vigilance level sensor working
+- [ ] Individual phenomenon alerts in attributes
+- [ ] Unit test coverage > 50%
 - [ ] Error retry logic in place
 - [ ] Enhanced logging for debugging
-- [ ] At least 2 advanced features shipped
+
+### v2.0.0 Goals (Advanced Features)
+- [ ] Unit test coverage > 70%
+- [ ] Integration tests for all platforms
+- [ ] At least 2 advanced features shipped (hourly risk, snow depth, etc.)
+- [ ] Multi-language support (German, Italian)
+- [ ] Custom Lovelace card (optional)
 
 ---
 
@@ -631,13 +1024,19 @@ async def test_arome_coordinator_success(hass):
 
 ## Next Actions
 
-1. **Approve this roadmap** - Review and confirm priorities
-2. **Start with Options Flow** - Implement OptionsFlowHandler
-3. **Commission/source logo** - Find designer or AI-generate
-4. **Take screenshots** - Set up test instance for documentation
-5. **Create GitHub milestones** - Track progress for v1.2.0, v1.3.0
+1. ✅ ~~**Options Flow**~~ - COMPLETE (v1.2.0-v1.2.6)
+2. ✅ ~~**Logo & Branding**~~ - COMPLETE (v1.3.0)
+3. 🔄 **Enhanced Documentation** (Priority 3) - **NEXT** (3-4 hours)
+   - Take screenshots of config flow
+   - Add FAQ section
+   - Create French translation
+4. 📋 **Diagnostics** (Priority 4) - After documentation (1 hour)
+5. ⚠️ **Weather Alerts** (Priority 5) - New mountain safety feature (3-4 hours)
+6. 🔧 **Code Quality** (Priority 4 continued) - Tests, error handling (3-5 hours)
 
 ---
 
-**Recommended First Task**: Implement Options Flow (Priority 1)
-**Estimated Time to v1.2.0 Release**: 1-2 weeks (Options Flow + Logo + Testing)
+**Current Status**: v1.3.0 released (Logo & Branding complete)
+**Recommended Next Task**: Enhanced Documentation (Priority 3)
+**Estimated Time to v1.4.0 Release**: 1-2 weeks (Documentation + Diagnostics)
+**Estimated Time to v1.5.0 Release**: 3-4 weeks (Weather Alerts + Code Quality)

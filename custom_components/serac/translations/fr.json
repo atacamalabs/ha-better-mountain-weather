@@ -1,0 +1,68 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Serac - Localisation",
+        "description": "Entrez un nom pour votre emplacement et ses coordonnées GPS pour obtenir les prévisions météorologiques.",
+        "data": {
+          "location_name": "Nom de l'emplacement",
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        },
+        "data_description": {
+          "location_name": "Un nom pour cet emplacement (ex: 'Chamonix Mont-Blanc')",
+          "latitude": "Coordonnée de latitude (ex: 45.9237 pour Chamonix)",
+          "longitude": "Coordonnée de longitude (ex: 6.8694 pour Chamonix)"
+        }
+      },
+      "prefix": {
+        "title": "Préfixe des entités",
+        "description": "Choisissez un identifiant court pour vos entités. Suggestion : {suggested_prefix}\n\nExemple : {example_entity}",
+        "data": {
+          "entity_prefix": "Préfixe des entités"
+        },
+        "data_description": {
+          "entity_prefix": "Lettres minuscules, chiffres et underscores uniquement. Doit commencer par une lettre."
+        }
+      },
+      "massifs": {
+        "title": "Données d'avalanche (Optionnel)",
+        "description": "Ajoutez optionnellement un jeton API BRA Météo-France et sélectionnez des massifs pour les bulletins d'avalanche. Vous pouvez passer cette étape si vous voulez uniquement les données météo.",
+        "data": {
+          "bra_token": "Jeton API BRA (optionnel)",
+          "massif_ids": "Sélectionner les massifs (optionnel)"
+        },
+        "data_description": {
+          "bra_token": "Clé API Météo-France pour les bulletins d'avalanche",
+          "massif_ids": "Sélectionnez un ou plusieurs massifs pour les données de risque d'avalanche"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossible de se connecter à l'API météo. Veuillez vérifier vos coordonnées et réessayer.",
+      "location_not_supported": "Cet emplacement n'est pas couvert. Cette intégration fonctionne pour les emplacements en France et en Andorre.",
+      "invalid_prefix": "Préfixe invalide. Doit commencer par une lettre et contenir uniquement des lettres minuscules, des chiffres et des underscores (1-20 caractères).",
+      "required": "Ce champ est obligatoire.",
+      "unknown": "Une erreur inattendue s'est produite. Veuillez réessayer."
+    },
+    "abort": {
+      "already_configured": "Cet emplacement est déjà configuré."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configuration de Serac",
+        "description": "Modifiez votre sélection de massifs ou votre jeton API BRA. L'intégration se rechargera automatiquement pour appliquer les modifications.",
+        "data": {
+          "bra_token": "Jeton API BRA (optionnel)",
+          "massif_ids": "Sélectionner les massifs (optionnel)"
+        },
+        "data_description": {
+          "bra_token": "Clé API Météo-France pour les bulletins d'avalanche. Laissez vide pour supprimer les données d'avalanche.",
+          "massif_ids": "Sélectionnez un ou plusieurs massifs pour les données de risque d'avalanche. Désélectionnez tout pour supprimer les capteurs d'avalanche."
+        }
+      }
+    }
+  }
+}

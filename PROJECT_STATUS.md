@@ -1,8 +1,8 @@
 # Serac Integration - Project Status
 
 **Last Updated**: 2026-02-12
-**Current Version**: v1.3.0 🎉
-**Status**: Logo & Branding Complete ✅
+**Current Version**: v1.4.0 🎉
+**Status**: Enhanced Documentation & Diagnostics Complete ✅
 **Repository**: https://github.com/atacamalabs/ha-serac
 **Roadmap**: See ROADMAP.md for development plan
 
@@ -17,11 +17,21 @@ Serac (formerly "Better Mountain Weather") is a Home Assistant integration provi
 
 ---
 
-## ✅ Version 1.3.0 - Logo & Branding (CURRENT)
+## ✅ Version 1.4.0 - Enhanced Documentation & Diagnostics (CURRENT)
+
+### 🎉 What's New in v1.4.0
+
+**v1.4.0 (Latest):**
+- 📚 **Enhanced documentation** - FAQ section with 10 common questions
+- 🔧 **Expanded troubleshooting** - 8 detailed troubleshooting sections
+- 🇫🇷 **French translation** - Complete UI translation (config flow, options, errors)
+- 📝 **CONTRIBUTING.md** - Comprehensive developer guide
+- 🔍 **Diagnostics support** - Download integration diagnostics for debugging
+- 📸 **Screenshot infrastructure** - Ready for visual documentation (images pending)
 
 ### 🎉 What's New in v1.3.0
 
-**v1.3.0 (Latest):**
+**v1.3.0:**
 - 🎨 **Custom logo** - Professional serac/mountain icon with weather elements
 - 🏔️ **Visual identity** - Logo shows on GitHub README and in repo
 - 📦 **Brands PR submitted** - Pending HA brands repository approval for UI display
@@ -258,9 +268,15 @@ custom_components/serac/
 - Error retry logic
 - **Estimated effort**: 4-6 hours
 
+### Priority 5: Weather Alerts (Vigilance) ⚠️
+- Météo-France Vigilance API integration
+- Department-level weather alerts
+- Color-coded warnings (Green/Yellow/Orange/Red)
+- Phenomena: wind, rain/flood, thunderstorms, snow/ice, fog
+- **Estimated effort**: 3-4 hours
+
 ### Future Backlog
 - Hourly BRA risk evolution
-- Weather alerts/warnings
 - Snow depth sensors
 - Multi-language support (German, Italian)
 - Custom Lovelace card

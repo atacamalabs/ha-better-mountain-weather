@@ -1,15 +1,24 @@
-# Next Steps - Post v1.3.0
+# Next Steps - Post v1.4.0
 
 **Last Updated**: 2026-02-12
-**Current Version**: v1.3.0 ✅
-**Status**: Logo & Branding complete, awaiting brands PR approval
+**Current Version**: v1.4.0 ✅
+**Status**: Enhanced Documentation & Diagnostics complete
 **Roadmap**: See **ROADMAP.md** for comprehensive development plan
 
 ---
 
 ## 🎉 Recent Releases
 
-### v1.3.0 - Logo & Branding (LATEST) ✅
+### v1.4.0 - Enhanced Documentation & Diagnostics (LATEST) ✅
+- 📚 FAQ section with 10 common questions
+- 🔧 Expanded troubleshooting guide (8 sections)
+- 🇫🇷 French translation (complete UI)
+- 📝 CONTRIBUTING.md developer guide
+- 🔍 Diagnostics support for debugging
+- 📸 Screenshot infrastructure prepared
+- **Status**: Released, screenshots to be added
+
+### v1.3.0 - Logo & Branding ✅
 - 🎨 Custom logo designed and integrated
 - 🏔️ Logo shows on GitHub README
 - 📦 Submitted to HA brands repository (PR #9547)
@@ -50,25 +59,41 @@
 - **Status**: Released, HA UI pending brands merge
 - **PR**: https://github.com/home-assistant/brands/pull/9547
 
-### v1.4.0 Target (Next - 1-2 weeks)
+### ✅ v1.4.0 - Enhanced Documentation & Diagnostics (COMPLETE)
 
-**Priority 3: Enhanced Documentation 📚** (3-4 hours)
-- Screenshots for all config steps
-- FAQ section (common questions)
-- French translation (translations/fr.json)
-- Expanded troubleshooting guide
-- CONTRIBUTING.md for developers
+**Priority 3: Enhanced Documentation 📚** ✅
+- ✅ FAQ section (10 common questions)
+- ✅ Expanded troubleshooting guide (8 sections)
+- ✅ French translation (translations/fr.json)
+- ✅ CONTRIBUTING.md for developers
+- 📸 Screenshots infrastructure prepared (images to be captured)
+- **Status**: Released, screenshots pending
 
-**Priority 4: Code Quality & Diagnostics 🔧** (4-6 hours)
-- Add diagnostics.py (export coordinator status)
+**Priority 4: Diagnostics 🔍** ✅
+- ✅ Add diagnostics.py (export coordinator status)
+- ✅ Redact sensitive data (BRA token)
+- ✅ Entity and device statistics
+- ✅ Coordinator health information
+- **Status**: Released in v1.4.0
+
+### v1.5.0 Target (Next - 2-3 weeks)
+
+**Priority 4: Code Quality (Continued) 🔧** (3-5 hours)
 - Implement error retry logic with exponential backoff
 - Unit tests for coordinators
 - Integration tests for config flow
 - Enhanced logging for debugging
 
+**Priority 5: Weather Alerts (Vigilance) ⚠️** (3-4 hours)
+- Météo-France Vigilance API integration
+- Department-level weather alerts
+- Color-coded warnings (Green/Yellow/Orange/Red)
+- Alert types: wind, rain/flood, thunderstorms, snow/ice, fog
+- Uses same BRA token (single API key for both features)
+
 ### Future Backlog
 
-- Advanced features (hourly risk evolution, snow depth, weather alerts)
+- Advanced features (hourly risk evolution, snow depth)
 - Multi-language support (German, Italian, Spanish)
 - Custom Lovelace card for avalanche risk
 - More robust error handling

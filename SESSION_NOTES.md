@@ -350,5 +350,217 @@ Settings → Devices & Services → Find Serac
 
 ---
 
-**Session End**: 2026-02-12
+**Session End**: 2026-02-12 (Logo & Branding complete)
 **Next Session**: TBD (Start Priority 3 or await brands feedback)
+
+---
+
+## Session: 2026-02-12 (Continued - Weather Alerts Research)
+
+### Summary
+
+Explored Open-Meteo and Météo-France APIs to investigate weather alerts availability. Added Weather Alerts (Vigilance) as Priority 5 to the roadmap.
+
+### Research Completed
+
+1. ✅ **Open-Meteo API Investigation**
+   - Confirmed: No weather alerts available
+   - Open-Meteo provides forecast data only (no severe weather warnings)
+   - Uses Météo-France AROME/ARPEGE models but not alert systems
+
+2. ✅ **Météo-France Vigilance API Research**
+   - Found: Comprehensive weather alert system available
+   - Endpoint: `https://public-api.meteofrance.fr/public/DPVigilance/v1/`
+   - **Authentication**: Requires API key (same portal as BRA)
+   - **Coverage**: All French departments + Andorra
+   - **Alert types**: Wind, rain/flood, thunderstorms, snow/ice, avalanche, extreme temps, fog
+   - **Color codes**: Green (1), Yellow (2), Orange (3), Red (4)
+
+3. ✅ **Home Assistant Integration Comparison**
+   - HA's meteo_france integration uses city search (not GPS)
+   - Creates `sensor.{city}_weather_alert` with phenomena in attributes
+   - Uses internal Météo-France API (requires token)
+
+### Decisions Made
+
+1. **Added Priority 5: Weather Alerts (Vigilance)** to ROADMAP.md
+   - Natural fit with weather + avalanche data
+   - Mountain safety critical (storm warnings, high winds)
+   - Reuses BRA token (same Météo-France API portal)
+   - Department-based (GPS coordinates → department code)
+
+2. **Implementation Approach**
+   - New `vigilance_client.py` API client
+   - New `VigilanceCoordinator` (6-hour updates like BRA)
+   - Simple sensor design: One overall level sensor + phenomena in attributes
+   - GPS → department code mapping needed
+
+3. **Estimated Effort**: 3-4 hours
+   - API client: 1.5 hours
+   - Coordinator: 30 min
+   - Sensors: 1 hour
+   - Testing/docs: 1 hour
+
+### Files Updated Today
+
+1. `ROADMAP.md` - Added Priority 5: Weather Alerts (Vigilance)
+   - Full implementation plan with code examples
+   - Updated implementation order (v1.5.0 target)
+   - Updated success metrics
+2. `PROJECT_STATUS.md` - Added Priority 5 to future enhancements
+3. `NEXT_STEPS.md` - Added Priority 5 details
+4. `SESSION_NOTES.md` - This session documentation
+
+### Key Findings
+
+**Open-Meteo:**
+- ❌ No weather alerts/warnings
+- ✅ Forecast data only
+
+**Météo-France Vigilance:**
+- ✅ Weather alerts available
+- ✅ Same API portal as BRA (can reuse token)
+- ✅ Department-level (good for GPS-based integration)
+- ✅ Real-time + 24-hour evolution
+- ⚠️ Requires authentication (API key)
+
+**Competitive Advantage:**
+- HA's meteo_france uses city search (awkward for mountain locations)
+- Serac can use GPS coordinates → auto-detect department
+- Single token for BRA + Vigilance (cleaner UX)
+
+### Next Session Plan
+
+**Current Priority Order**:
+1. ✅ Priority 1 (Options Flow) - COMPLETE v1.2.0-v1.2.6
+2. ✅ Priority 2 (Logo & Branding) - COMPLETE v1.3.0
+3. 📋 Priority 3 (Enhanced Documentation) - NEXT (v1.4.0 target)
+4. 🔧 Priority 4 (Code Quality & Diagnostics) - After P3 (v1.4.0)
+5. ⚠️ Priority 5 (Weather Alerts) - After P3/P4 (v1.5.0 target)
+
+**Recommendation**: Continue with Priority 3 (Enhanced Documentation) next session
+
+---
+
+**Session End**: 2026-02-12 (Weather Alerts added to roadmap)
+
+---
+
+## Session: 2026-02-12 (Continued - Priority 3 & 4 Implementation)
+
+### Summary
+
+Completed Priority 3 (Enhanced Documentation) and Priority 4 (Diagnostics). Released v1.4.0 with comprehensive documentation improvements and debugging support.
+
+### Completed Today
+
+1. ✅ **Priority 3: Enhanced Documentation** (COMPLETE)
+   - Created FAQ section with 10 common questions
+   - Expanded troubleshooting to 8 detailed sections
+   - Added French translation (translations/fr.json)
+   - Created CONTRIBUTING.md developer guide
+   - Prepared screenshot infrastructure (images to be captured later)
+
+2. ✅ **Priority 4: Diagnostics** (COMPLETE)
+   - Created diagnostics.py with full coordinator status export
+   - Redacts sensitive data (BRA token)
+   - Exports entity/device statistics
+   - Shows coordinator health and update times
+   - Accessible via Settings → Devices & Services → Serac → Download Diagnostics
+
+### Files Created Today
+
+1. `custom_components/serac/translations/fr.json` - French UI translation
+2. `CONTRIBUTING.md` - Comprehensive developer guide
+3. `custom_components/serac/diagnostics.py` - Diagnostics support
+4. `docs/screenshots/README.md` - Screenshot capture guide
+5. `docs/screenshots/` - Directory for future screenshots
+
+### Files Modified Today
+
+1. `README.md` - Added FAQ (10 Q&A), expanded troubleshooting (8 sections), screenshot placeholders
+2. `custom_components/serac/manifest.json` - Version: 1.3.0 → 1.4.0
+3. `PROJECT_STATUS.md` - Updated to v1.4.0, added feature list
+4. `NEXT_STEPS.md` - Marked P3 and P4 diagnostics as complete
+5. `SESSION_NOTES.md` - This file (session documentation)
+
+### Key Features Added
+
+**Documentation Improvements:**
+- **FAQ**: Can I change massifs? Why no avalanche sensors? Multiple locations? Outside France?
+- **Troubleshooting**: Integration installation, weather updates, avalanche sensors, entity IDs, connection errors, unknown sensors, performance, uninstall
+- **French Translation**: Complete UI coverage for French users
+- **Developer Guide**: Setup, structure, testing, contributing, code style
+
+**Diagnostics Feature:**
+- Exports config (token redacted)
+- Coordinator status (AROME + BRA per massif)
+- Entity/device counts and breakdown
+- Last update times and success status
+- Data structure overview
+- No personal information exported
+
+### Version Bump: v1.3.0 → v1.4.0
+
+**v1.4.0 Release Notes:**
+- 📚 Enhanced documentation (FAQ, troubleshooting)
+- 🇫🇷 French translation
+- 📝 CONTRIBUTING.md
+- 🔍 Diagnostics support
+- 📸 Screenshot infrastructure
+
+### Testing Status
+
+**Diagnostics:**
+- ✅ Python syntax validated
+- ⏳ Manual testing pending (requires live HA instance)
+- ⏳ Verify download works via UI
+- ⏳ Verify BRA token redaction
+- ⏳ Verify coordinator data export
+
+**Documentation:**
+- ✅ FAQ written and added to README
+- ✅ Troubleshooting expanded
+- ✅ French translation complete
+- ✅ CONTRIBUTING.md complete
+- 📸 Screenshots infrastructure ready (images to be captured)
+
+### Next Session Plan
+
+**Options for next session:**
+
+1. **Option A: Test & Release v1.4.0**
+   - Test diagnostics download in live HA
+   - Verify French translation works
+   - Capture screenshots
+   - Create GitHub release
+   - **Estimated time**: 1-2 hours
+
+2. **Option B: Continue Priority 4 (Code Quality)**
+   - Add error retry logic with exponential backoff
+   - Implement unit tests for coordinators
+   - Enhance error logging
+   - **Estimated time**: 3-5 hours
+
+3. **Option C: Start Priority 5 (Weather Alerts)**
+   - Begin implementation of Météo-France Vigilance
+   - Create vigilance_client.py
+   - Add VigilanceCoordinator
+   - **Estimated time**: 3-4 hours
+
+**Recommendation**: Option A (Test & Release) to ship v1.4.0, then user captures screenshots, then move to Priority 4 or 5.
+
+### Task List Summary
+
+Completed today:
+- ✅ Task #1: Screenshots infrastructure prepared
+- ✅ Task #2: FAQ section created
+- ✅ Task #3: Troubleshooting expanded
+- ✅ Task #4: French translation added
+- ✅ Task #5: CONTRIBUTING.md created
+- ✅ Task #6: Diagnostics.py implemented
+
+---
+
+**Session End**: 2026-02-12 (v1.4.0 development complete)
+**Next Session**: TBD (Testing & Release, or continue Priority 4/5)

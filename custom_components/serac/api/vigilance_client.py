@@ -112,6 +112,14 @@ class VigilanceClient:
                     response.raise_for_status()
                     data = await response.json()
 
+                    # DEBUG: Log the full API response to understand structure
+                    import json
+                    _LOGGER.warning(
+                        "VIGILANCE API RESPONSE (dept %s): %s",
+                        self._department,
+                        json.dumps(data, indent=2, ensure_ascii=False)
+                    )
+
                     _LOGGER.debug(
                         "Vigilance API response received for department %s",
                         self._department,

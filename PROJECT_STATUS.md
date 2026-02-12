@@ -1,8 +1,8 @@
 # Serac Integration - Project Status
 
 **Last Updated**: 2026-02-12
-**Current Version**: v1.5.0 🎉
-**Status**: Code Quality & Testing Complete ✅
+**Current Version**: v1.6.0 🎉
+**Status**: Weather Alerts (Vigilance) Complete ✅
 **Repository**: https://github.com/atacamalabs/ha-serac
 **Roadmap**: See ROADMAP.md for development plan
 
@@ -17,11 +17,23 @@ Serac (formerly "Better Mountain Weather") is a Home Assistant integration provi
 
 ---
 
-## ✅ Version 1.5.0 - Code Quality & Testing (CURRENT)
+## ✅ Version 1.6.0 - Weather Alerts (Vigilance) (CURRENT)
+
+### 🎉 What's New in v1.6.0
+
+**v1.6.0 (Latest):**
+- 🚨 **Weather Alerts (Vigilance)** - Météo-France department-level weather alerts
+- 📍 **GPS to Department mapping** - Automatic French department detection (23 departments)
+- 🎯 **Alert sensors** - vigilance_level (1-4) and vigilance_color (green/yellow/orange/red)
+- 🌪️ **Phenomena tracking** - Wind, rain/flood, snow/ice, thunderstorms, fog, extreme temps
+- 🔑 **Separate token** - Optional vigilance_token field (requires separate API subscription)
+- 🌐 **French translations** - Complete UI translations for vigilance features
+- 📊 **Rich attributes** - All phenomena levels available in sensor attributes
+- 🛡️ **Graceful degradation** - Works only for French coordinates, won't fail otherwise
 
 ### 🎉 What's New in v1.5.0
 
-**v1.5.0 (Latest):**
+**v1.5.0:**
 - 🔄 **Error retry logic** - Exponential backoff for network errors (3 attempts: 1s, 2s, 4s)
 - 📊 **Enhanced logging** - Timing metrics, structured logs with context
 - 🧪 **Unit tests** - 29 tests covering retry logic, coordinators, config flow
@@ -289,12 +301,14 @@ custom_components/serac/
 - ✅ Test infrastructure (pytest + asyncio)
 - **Status**: Shipped in v1.5.0
 
-### Priority 5: Weather Alerts (Vigilance) ⚠️
-- Météo-France Vigilance API integration
-- Department-level weather alerts
-- Color-coded warnings (Green/Yellow/Orange/Red)
-- Phenomena: wind, rain/flood, thunderstorms, snow/ice, fog
-- **Estimated effort**: 3-4 hours
+### ✅ Priority 5: Weather Alerts (Vigilance) (COMPLETE)
+- ✅ Météo-France Vigilance API integration
+- ✅ Department-level weather alerts (23 departments)
+- ✅ Color-coded warnings (Green/Yellow/Orange/Red)
+- ✅ Phenomena: wind, rain/flood, thunderstorms, snow/ice, fog, extreme temps
+- ✅ Separate vigilance_token configuration
+- ✅ 2 vigilance sensors (level & color) with rich attributes
+- **Status**: Shipped in v1.6.0
 
 ### Future Backlog
 - Hourly BRA risk evolution
@@ -306,6 +320,7 @@ custom_components/serac/
 
 ## 📚 Version History
 
+- **v1.6.0** (2026-02-12): 🚨 Weather Alerts (Vigilance API), department detection, 2 new sensors
 - **v1.5.0** (2026-02-12): 🧪 Error retry logic, enhanced logging, 29 unit tests
 - **v1.4.2** (2026-02-12): 🐛 Fix diagnostics timestamp type error
 - **v1.4.1** (2026-02-12): 🐛 Fix diagnostics attribute check
@@ -393,9 +408,13 @@ tail -f /config/home-assistant.log | grep serac
 
 See **ROADMAP.md** for comprehensive development plan.
 
-**Immediate next**: Priority 5 - Weather Alerts (Vigilance API)
+**All current priorities complete!** Future enhancements:
+- Hourly avalanche risk evolution
+- Snow depth sensors (if data becomes available)
+- Custom Lovelace card
+- Multi-language support (German, Italian)
 
 ---
 
-**Status**: Production ready v1.5.0 released 🎉
-**Next milestone**: v1.6.0 (Weather Alerts / Vigilance API)
+**Status**: Production ready v1.6.0 released 🎉
+**Next milestone**: TBD - Feature requests welcome!

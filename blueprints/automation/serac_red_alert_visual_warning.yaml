@@ -1,0 +1,80 @@
+blueprint:
+  name: Serac Red Alert Visual Warning
+  description: Flash lights red when extreme weather conditions (red alerts) are detected by Serac.
+  domain: automation
+  input:
+    red_alert_sensor:
+      name: Red Alert Sensor
+      description: The Serac binary sensor for red alerts (has_red_alert)
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+              integration: serac
+    light_entities:
+      name: Lights
+      description: The lights to flash red
+      selector:
+        target:
+          entity:
+            - domain: light
+    flash_pattern:
+      name: Flash Pattern
+      description: How to flash the lights
+      default: "long"
+      selector:
+        select:
+          options:
+            - label: Short Flash
+              value: "short"
+            - label: Long Flash
+              value: "long"
+    send_notification:
+      name: Send Notification
+      description: Also send a mobile notification
+      default: true
+      selector:
+        boolean:
+    notification_service:
+      name: Notification Service
+      description: The notification service to use (only if Send Notification is enabled)
+      default: "notify.mobile_app"
+      selector:
+        text:
+
+trigger:
+  - platform: state
+    entity_id: !input red_alert_sensor
+    to: "on"
+
+action:
+  - service: light.turn_on
+    target: !input light_entities
+    data:
+      flash: !input flash_pattern
+      rgb_color: [255, 0, 0]
+
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ send_notification }}"
+        sequence:
+          - service: !input notification_service
+            data:
+              title: "🚨 EXTREME WEATHER ALERT"
+              message: >
+                RED ALERT detected!
+
+                {% for alert in state_attr(trigger.entity_id, 'active_alerts') %}
+                {{ alert.name }}: EXTREME CONDITIONS
+                {% endfor %}
+
+                Take immediate safety precautions. Conditions are extremely dangerous.
+              data:
+                push:
+                  sound:
+                    name: "default"
+                    critical: 1
+                    volume: 1.0
+
+mode: single

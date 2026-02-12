@@ -1,0 +1,74 @@
+blueprint:
+  name: Serac Avalanche Risk Alert
+  description: Send notifications when avalanche risk reaches a specified level in your selected massif.
+  domain: automation
+  input:
+    avalanche_sensor:
+      name: Avalanche Risk Sensor
+      description: The Serac avalanche risk sensor to monitor (e.g., sensor.serac_chamonix_aravis_avalanche_risk_today)
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              integration: serac
+    risk_threshold:
+      name: Risk Threshold
+      description: Alert when risk reaches or exceeds this level
+      default: 3
+      selector:
+        select:
+          options:
+            - label: "Level 2 - Moderate (Yellow)"
+              value: 2
+            - label: "Level 3 - Considerable (Orange)"
+              value: 3
+            - label: "Level 4 - High (Red)"
+              value: 4
+            - label: "Level 5 - Very High (Black)"
+              value: 5
+    notification_service:
+      name: Notification Service
+      description: The notification service to use (e.g., notify.mobile_app_iphone)
+      selector:
+        text:
+    include_accidental_risk:
+      name: Include Accidental Risk Info
+      description: Include information about accidental avalanche triggers in the notification
+      default: true
+      selector:
+        boolean:
+
+trigger:
+  - platform: numeric_state
+    entity_id: !input avalanche_sensor
+    above: !input risk_threshold
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ include_accidental_risk }}"
+        sequence:
+          - service: !input notification_service
+            data:
+              title: "❄️ High Avalanche Risk"
+              message: >
+                Avalanche risk level {{ states(trigger.entity_id) }} detected.
+
+                Massif: {{ state_attr(trigger.entity_id, 'friendly_name') | replace('Avalanche Risk Today - ', '') }}
+
+                {% set accidental_sensor = trigger.entity_id | replace('_risk_today', '_accidental') %}
+                {% if states(accidental_sensor) not in ['unknown', 'unavailable', 'none'] %}
+                Accidental Risk: {{ states(accidental_sensor) }}
+                {% endif %}
+
+                Take appropriate safety precautions when in mountainous areas.
+    default:
+      - service: !input notification_service
+        data:
+          title: "❄️ High Avalanche Risk"
+          message: >
+            Avalanche risk level {{ states(trigger.entity_id) }} detected.
+            Massif: {{ state_attr(trigger.entity_id, 'friendly_name') | replace('Avalanche Risk Today - ', '') }}
+
+mode: single

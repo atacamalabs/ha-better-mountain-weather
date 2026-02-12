@@ -1,0 +1,58 @@
+blueprint:
+  name: Serac Weather Alert Notification
+  description: Send a mobile notification when weather alerts are detected by Serac vigilance sensors.
+  domain: automation
+  input:
+    alert_sensor:
+      name: Alert Sensor
+      description: The Serac binary sensor to monitor for alerts
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+              integration: serac
+    notification_service:
+      name: Notification Service
+      description: The notification service to use (e.g., notify.mobile_app_iphone)
+      selector:
+        text:
+    notification_title:
+      name: Notification Title
+      description: Title for the notification
+      default: "⚠️ Weather Alert"
+      selector:
+        text:
+    include_alert_details:
+      name: Include Alert Details
+      description: Include detailed alert information in the message
+      default: true
+      selector:
+        boolean:
+
+trigger:
+  - platform: state
+    entity_id: !input alert_sensor
+    to: "on"
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ include_alert_details }}"
+        sequence:
+          - service: !input notification_service
+            data:
+              title: !input notification_title
+              message: >
+                {{ state_attr(trigger.entity_id, 'alert_count') }} alert(s) detected.
+
+                {% for alert in state_attr(trigger.entity_id, 'active_alerts') %}
+                - {{ alert.name }}: {{ alert.color | title }} (Level {{ alert.level }})
+                {% endfor %}
+    default:
+      - service: !input notification_service
+        data:
+          title: !input notification_title
+          message: "Weather alert detected. Check Home Assistant for details."
+
+mode: single

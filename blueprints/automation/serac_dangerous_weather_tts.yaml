@@ -1,0 +1,63 @@
+blueprint:
+  name: Serac Dangerous Weather TTS Announcement
+  description: Make a text-to-speech announcement when dangerous weather conditions (orange or red alerts) are detected.
+  domain: automation
+  input:
+    orange_alert_sensor:
+      name: Orange/Red Alert Sensor
+      description: The Serac binary sensor for orange/red alerts (has_orange_alert)
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+              integration: serac
+    media_player:
+      name: Media Player
+      description: The media player to announce on
+      selector:
+        entity:
+          filter:
+            - domain: media_player
+    tts_service:
+      name: TTS Service
+      description: The text-to-speech service to use (e.g., tts.google_translate_say)
+      selector:
+        text:
+    announcement_language:
+      name: Announcement Language
+      description: Language code for TTS (e.g., en, fr, de, it, es)
+      default: "en"
+      selector:
+        select:
+          options:
+            - label: English
+              value: "en"
+            - label: French
+              value: "fr"
+            - label: German
+              value: "de"
+            - label: Italian
+              value: "it"
+            - label: Spanish
+              value: "es"
+
+trigger:
+  - platform: state
+    entity_id: !input orange_alert_sensor
+    to: "on"
+
+action:
+  - service: !input tts_service
+    target:
+      entity_id: !input media_player
+    data:
+      message: >
+        Attention. Dangerous weather alert detected.
+        {{ state_attr(trigger.entity_id, 'alert_count') }} alert{{ 's' if state_attr(trigger.entity_id, 'alert_count') > 1 else '' }}.
+        {% for alert in state_attr(trigger.entity_id, 'active_alerts') %}
+        {{ alert.name }}, {{ alert.color }} alert.
+        {% endfor %}
+        Please take appropriate precautions.
+      language: !input announcement_language
+
+mode: single

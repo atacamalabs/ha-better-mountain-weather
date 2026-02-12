@@ -318,16 +318,8 @@ class SeracOptionsFlow(config_entries.OptionsFlow):
         massif_options = {str(num_id): name for num_id, (name, _) in MASSIF_IDS.items()}
 
         data_schema = vol.Schema({
-            vol.Optional(
-                CONF_BRA_TOKEN,
-                description={"suggested_value": current_token},
-                default=current_token
-            ): str,
-            vol.Optional(
-                CONF_MASSIF_IDS,
-                description={"suggested_value": current_massifs},
-                default=current_massifs
-            ): cv.multi_select(massif_options),
+            vol.Optional(CONF_BRA_TOKEN, default=current_token): str,
+            vol.Optional(CONF_MASSIF_IDS, default=current_massifs): cv.multi_select(massif_options),
         })
 
         return self.async_show_form(

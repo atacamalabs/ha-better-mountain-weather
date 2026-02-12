@@ -917,6 +917,34 @@ class VigilanceSensor(CoordinatorEntity, SensorEntity):
                 attrs[f"{phenom_name}_level"] = phenom_data.get("level")
                 attrs[f"{phenom_name}_color"] = phenom_data.get("color")
 
+            # Add enhanced attributes for summary sensor and overall sensors
+            from .const import VIGILANCE_PHENOMENA_NAMES
+
+            # Find active alerts (level > 1)
+            active_alerts = []
+            highest_level = 1
+            for phenom_name, phenom_data in phenomena.items():
+                level = phenom_data.get("level", 1)
+                if level > 1:
+                    display_name = VIGILANCE_PHENOMENA_NAMES.get(phenom_name, phenom_name.title())
+                    active_alerts.append({
+                        "phenomenon": phenom_name,
+                        "name": display_name,
+                        "level": level,
+                        "color": phenom_data.get("color"),
+                    })
+                    highest_level = max(highest_level, level)
+
+            # Add active alerts list
+            if active_alerts:
+                attrs["active_alerts"] = active_alerts
+                attrs["alert_count"] = len(active_alerts)
+                attrs["highest_level"] = highest_level
+            else:
+                attrs["active_alerts"] = []
+                attrs["alert_count"] = 0
+                attrs["highest_level"] = 1
+
         return attrs
 
     @property

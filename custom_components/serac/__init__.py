@@ -27,7 +27,7 @@ from .coordinator import AromeCoordinator, BraCoordinator, VigilanceCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.WEATHER, Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.WEATHER, Platform.SENSOR, Platform.BINARY_SENSOR]
 
 
 async def async_cleanup_removed_massifs(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -383,6 +383,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Forward setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Register service for vigilance updates (only once globally)
+    async def handle_update_vigilance(call):
+        """Handle the update_vigilance service call."""
+        _LOGGER.info("Manual vigilance update requested")
+
+        # Update all vigilance coordinators across all entries
+        updated_count = 0
+        for entry_id, entry_data in hass.data[DOMAIN].items():
+            if isinstance(entry_data, dict):
+                vigilance_coordinator = entry_data.get("vigilance_coordinator")
+                if vigilance_coordinator:
+                    await vigilance_coordinator.async_request_refresh()
+                    updated_count += 1
+
+        if updated_count > 0:
+            _LOGGER.info("Updated %d vigilance coordinator(s)", updated_count)
+        else:
+            _LOGGER.warning("No vigilance coordinators found to update")
+
+    # Register service only once (not per entry)
+    if not hass.services.has_service(DOMAIN, "update_vigilance"):
+        hass.services.async_register(DOMAIN, "update_vigilance", handle_update_vigilance)
 
     _LOGGER.info(
         "Successfully set up Serac for %s",

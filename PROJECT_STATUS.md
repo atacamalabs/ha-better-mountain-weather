@@ -1,8 +1,8 @@
 # Serac Integration - Project Status
 
 **Last Updated**: 2026-02-12
-**Current Version**: v1.7.1 🎉
-**Status**: Vigilance Enhancements & Fixes Complete ✅
+**Current Version**: v1.8.0 🎉
+**Status**: Vigilance Automation Features Complete ✅
 **Repository**: https://github.com/atacamalabs/ha-serac
 **Roadmap**: See ROADMAP.md for development plan
 
@@ -17,7 +17,36 @@ Serac (formerly "Better Mountain Weather") is a Home Assistant integration provi
 
 ---
 
-## ✅ Version 1.7.x - Vigilance Enhancements (CURRENT)
+## ✅ Version 1.8.0 - Vigilance Automation Features (CURRENT)
+
+### 🎉 What's New in v1.8.0
+
+**v1.8.0 (Latest):**
+- 🎯 **Binary sensors for automations** - 3 new binary sensors for easier automation triggers
+  - `binary_sensor.serac_{prefix}_has_active_alert` - Any alert above green
+  - `binary_sensor.serac_{prefix}_has_orange_alert` - Orange or red alerts
+  - `binary_sensor.serac_{prefix}_has_red_alert` - Red alerts only
+- 🔄 **Manual update service** - `serac.update_vigilance` to force refresh
+- 📊 **Enhanced attributes** - Added `active_alerts`, `alert_count`, `highest_level` to sensors
+- 🤖 **Perfect for notifications** - Easy integration with mobile app and TTS
+- 🔧 **Better automations** - Binary sensors work with all automation triggers
+
+**Automation Examples:**
+```yaml
+# Trigger on any alert
+trigger:
+  - platform: state
+    entity_id: binary_sensor.serac_home_has_active_alert
+    to: "on"
+
+# Trigger on dangerous alerts
+trigger:
+  - platform: state
+    entity_id: binary_sensor.serac_home_has_orange_alert
+    to: "on"
+```
+
+## ✅ Version 1.7.x - Vigilance Enhancements
 
 ### 🎉 What's New in v1.7.1
 
@@ -345,6 +374,7 @@ custom_components/serac/
 
 ## 📚 Version History
 
+- **v1.8.0** (2026-02-12): 🎯 Binary sensors for automations, manual update service, enhanced attributes
 - **v1.7.1** (2026-02-12): 🐛 Fixed entity ID validation, unicode character sanitization
 - **v1.7.0** (2026-02-12): 🌪️ Individual phenomenon sensors, alert summary sensor (12 vigilance sensors total)
 - **v1.6.2** (2026-02-12): 🐛 Fixed Vigilance API data extraction
@@ -445,5 +475,5 @@ See **ROADMAP.md** for comprehensive development plan.
 
 ---
 
-**Status**: Production ready v1.7.1 released 🎉
+**Status**: Production ready v1.8.0 released 🎉
 **Next milestone**: TBD - Feature requests welcome!

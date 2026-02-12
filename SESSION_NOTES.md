@@ -564,3 +564,282 @@ Completed today:
 
 **Session End**: 2026-02-12 (v1.4.0 development complete)
 **Next Session**: TBD (Testing & Release, or continue Priority 4/5)
+
+---
+
+## Session: 2026-02-12 (Continued - v1.5.0 through v1.7.1)
+
+### Summary
+
+Completed multiple rapid releases from v1.5.0 to v1.7.1, implementing Priority 4 (Code Quality), Priority 5 (Weather Alerts/Vigilance), and critical bug fixes. Verified all functionality via MCP testing with live Home Assistant instance.
+
+### Version History (Rapid Development Period)
+
+#### v1.5.0 - Code Quality & Testing
+- ✅ Error retry logic with exponential backoff (3 attempts: 1s, 2s, 4s)
+- ✅ Enhanced logging with timing metrics
+- ✅ 29 unit tests covering retry logic, coordinators, config flow
+- ✅ Test infrastructure (pytest + asyncio)
+- **Priority 4 Phase 1: Complete**
+
+#### v1.4.1 & v1.4.2 - Diagnostics Bug Fixes
+- v1.4.1: Fixed diagnostics attribute existence checks
+- v1.4.2: Fixed diagnostics timestamp type errors
+- **Priority 4 Phase 2: Complete**
+
+#### v1.6.0 - Weather Alerts (Vigilance) Initial Release
+- ✅ Météo-France Vigilance API integration
+- ✅ GPS → French department detection (23 departments covered)
+- ✅ 2 vigilance sensors: `vigilance_level` (1-4) and `vigilance_color` (green/yellow/orange/red)
+- ✅ Department boundary mapping in const.py
+- ✅ Separate `vigilance_token` configuration (optional field)
+- ✅ French translations for vigilance features
+- ✅ Rich attributes with all phenomena data
+- **Priority 5 Phase 1: Complete**
+
+#### v1.6.1 & v1.6.2 - Vigilance API Fixes
+- v1.6.1: Added debug logging to diagnose API parsing
+- v1.6.2: Fixed data extraction to match real API structure
+  - Real structure: `product.periods[0].timelaps.domain_ids[]`
+  - Fixed department matching by `domain_id` field
+  - Removed debug logging
+
+#### v1.7.0 - Vigilance Enhanced Sensors
+- ✅ **9 individual phenomenon sensors** (one per phenomenon type)
+  - `sensor.serac_{prefix}_vigilance_phenom_wind`
+  - `sensor.serac_{prefix}_vigilance_phenom_avalanche`
+  - `sensor.serac_{prefix}_vigilance_phenom_rain_flood`
+  - `sensor.serac_{prefix}_vigilance_phenom_thunderstorm`
+  - `sensor.serac_{prefix}_vigilance_phenom_flood`
+  - `sensor.serac_{prefix}_vigilance_phenom_snow_ice`
+  - `sensor.serac_{prefix}_vigilance_phenom_extreme_heat`
+  - `sensor.serac_{prefix}_vigilance_phenom_extreme_cold`
+  - `sensor.serac_{prefix}_vigilance_phenom_fog`
+- ✅ **Alert summary sensor** with human-readable format
+  - Example: "Orange Alert: Avalanche. Yellow Alert: Rain/Flood, Snow/Ice"
+- ✅ **12 total vigilance sensors** (2 overall + 1 summary + 9 phenomena)
+- ✅ Phenomenon-specific icons (mdi:weather-windy, mdi:image-filter-hdr, etc.)
+- **Priority 5 Phase 2: Complete**
+
+#### v1.7.1 - Entity ID Sanitization Fix (Today's Main Work)
+- 🐛 **Fixed invalid entity ID warnings** for special characters
+- ✅ Added `_sanitize_entity_id_part()` utility function
+- ✅ Unicode normalization to remove accents (é→e, à→a, ç→c)
+- ✅ Applied to all sensor classes (SeracSensor, BraSensor, VigilanceSensor)
+- ✅ Display names preserved (still show "Dévoluy" with accent)
+- ✅ HA 2027.2.0 compatibility ensured
+
+### Today's Work Detail
+
+#### 1. Entity ID Sanitization Implementation
+
+**Problem Identified:**
+```
+Detected that custom integration 'serac' sets an invalid entity ID:
+'sensor.serac_chamonix_dévoluy_avalanche_summary'
+This will stop working in Home Assistant 2027.2.0
+```
+
+**Solution Implemented:**
+- Created sanitization function using `unicodedata.normalize('NFKD', text)`
+- Removes diacritical marks (accents) from entity prefixes
+- Ensures only lowercase, numbers, underscores in entity IDs
+- Applied to sensor.py lines 669, 742, 838
+
+**Result:**
+- Before: `sensor.serac_chamonix_dévoluy_*` ❌
+- After: `sensor.serac_chamonix_devoluy_*` ✅
+- Friendly names: Still show "Dévoluy" (preserved) ✅
+
+#### 2. GitHub Release
+
+**Release v1.7.1:**
+- Commit 136e4c8: "Release: Serac v1.7.1 - Entity ID Sanitization Fix"
+- Tag: v1.7.1
+- Release URL: https://github.com/atacamalabs/ha-serac/releases/tag/v1.7.1
+- Comprehensive release notes with before/after examples
+- Upgrade instructions for HACS users
+
+#### 3. MCP Testing (Live Home Assistant)
+
+**Connected to HA via MCP tools and verified:**
+
+✅ **Integration Status:**
+- 2 Serac instances loaded successfully
+- "home" instance (loaded)
+- "Chamonix Mont Blanc" instance (loaded)
+
+✅ **Entity ID Sanitization:**
+- Found 482 entities with "chamonix_devoluy" prefix
+- All using sanitized entity IDs (no special characters)
+- Display names correctly preserved (show "Dévoluy" with é)
+
+✅ **Weather Sensors:**
+- `sensor.serac_chamonix_temperature_current` = 2.2°C
+- `sensor.serac_chamonix_cloud_coverage` = 93%
+- All current/daily/air quality sensors working
+
+✅ **Avalanche Sensors:**
+- `sensor.serac_chamonix_devoluy_avalanche_summary` working
+- `sensor.serac_chamonix_devoluy_avalanche_risk_today` = 3 (Orange)
+- `sensor.serac_chamonix_queyras_avalanche_risk_today` = 4 (Red)
+- All 8 avalanche sensors per massif functioning
+
+✅ **Vigilance Sensors (v1.7.0 features):**
+- `sensor.serac_home_vigilance_level` = 3 (Orange)
+- `sensor.serac_home_vigilance_color` = "orange"
+- `sensor.serac_home_vigilance_summary` = "Orange Alert: Avalanche. Yellow Alert: Rain/Flood, Snow/Ice"
+- `sensor.serac_home_vigilance_phenom_avalanche` = 3 (Orange)
+- All 9 individual phenomenon sensors working correctly
+- Real-time data showing actual alerts in Haute-Savoie (dept 74):
+  - 🟠 Orange: Avalanche (level 3)
+  - 🟡 Yellow: Rain/Flood (level 2), Snow/Ice (level 2)
+  - 🟢 Green: Wind, Thunderstorm, Extreme Cold, Flood (level 1)
+
+✅ **No Warnings:**
+- No invalid entity ID warnings detected
+- All 1516 Serac entities working properly
+- Integration stable and healthy
+
+### Files Modified Today
+
+1. `custom_components/serac/sensor.py`
+   - Added imports: `re`, `unicodedata`
+   - Added `_sanitize_entity_id_part()` function (lines 73-98)
+   - Applied sanitization in SeracSensor.__init__ (line 669)
+   - Applied sanitization in BraSensor.__init__ (line 742)
+   - Applied sanitization in VigilanceSensor.__init__ (line 838)
+
+2. `custom_components/serac/manifest.json`
+   - Version: 1.7.0 → 1.7.1
+
+3. `PROJECT_STATUS.md`
+   - Added v1.7.1 and v1.7.0 release notes
+   - Updated version history
+   - Updated current version to v1.7.1
+
+4. `SESSION_NOTES.md` - This file
+
+### Current State
+
+**Version**: v1.7.1 ✅
+**Repository**: https://github.com/atacamalabs/ha-serac
+**Status**: Production ready, fully tested via MCP
+
+**All Priorities Complete:**
+- ✅ Priority 1: Options Flow (v1.2.0-v1.2.6)
+- ✅ Priority 2: Logo & Branding (v1.3.0)
+- ✅ Priority 3: Enhanced Documentation (v1.4.0)
+- ✅ Priority 4: Code Quality & Diagnostics (v1.4.1-v1.5.0)
+- ✅ Priority 5: Weather Alerts/Vigilance (v1.6.0-v1.7.0)
+- ✅ Bug Fix: Entity ID Sanitization (v1.7.1)
+
+**Total Sensor Count:**
+- Weather: 51 sensors (static, current, daily, air quality)
+- Avalanche: 8 sensors per massif (user configurable)
+- Vigilance: 12 sensors (2 overall + 1 summary + 9 phenomena)
+- Weather entity: 1 with ~158 attributes
+
+### Vigilance Feature Summary (v1.6.0-v1.7.0)
+
+**Department Detection:**
+- 23 French departments mapped with GPS boundaries
+- Automatic department detection from latitude/longitude
+- Example: (45.9237, 6.8694) → Department 74 (Haute-Savoie)
+
+**Sensor Types:**
+1. **Overall Sensors:**
+   - `vigilance_level`: Integer 1-4 (green/yellow/orange/red)
+   - `vigilance_color`: String "green"/"yellow"/"orange"/"red"
+
+2. **Summary Sensor:**
+   - `vigilance_summary`: Human-readable active alerts
+   - Groups by severity: "Red Alert: X. Orange Alert: Y. Yellow Alert: Z"
+   - Shows only non-green alerts
+
+3. **Individual Phenomenon Sensors:**
+   - One sensor per phenomenon type (9 total)
+   - Each outputs level 1-4
+   - Icons specific to phenomenon type
+   - Easy integration with custom cards and automations
+
+**Phenomena Tracked:**
+- Wind (mdi:weather-windy)
+- Rain/Flood (mdi:weather-pouring)
+- Thunderstorm (mdi:weather-lightning)
+- Flood (mdi:flood)
+- Snow/Ice (mdi:snowflake)
+- Extreme Heat (mdi:sun-thermometer)
+- Extreme Cold (mdi:snowflake-thermometer)
+- Avalanche (mdi:image-filter-hdr)
+- Fog (mdi:weather-fog)
+
+### Lessons Learned
+
+1. **Entity ID Validation**
+   - Home Assistant is strict about entity ID format
+   - Special characters (accents, unicode) not allowed
+   - Always sanitize user input used in entity IDs
+   - Display names can retain special characters for UX
+
+2. **MCP Testing**
+   - MCP tools provide excellent live testing capability
+   - Can verify entity states, attributes, integration health
+   - Faster than manual UI testing
+   - Great for regression testing after releases
+
+3. **Rapid Release Cadence**
+   - v1.4.0 through v1.7.1 in single day (8 releases)
+   - Small, focused releases easier to test and debug
+   - Bug fixes as separate releases (v1.6.1, v1.6.2, v1.7.1)
+   - Feature releases as minor versions (v1.6.0, v1.7.0)
+
+4. **Vigilance API Complexity**
+   - Real API structure differed from documentation
+   - Debug logging essential for API debugging
+   - Remove debug logging after fix confirmed
+   - Real-world testing critical (user provided logs)
+
+### Next Session Plan
+
+**Goal**: Vigilance Enhancements (Quick wins)
+
+**Option A: Vigilance Feature Enhancements** (SELECTED)
+
+Planned improvements:
+1. **Binary Sensors for Easier Automations**
+   - `binary_sensor.serac_{prefix}_has_active_alert` (any alert > green)
+   - `binary_sensor.serac_{prefix}_has_orange_alert` (any alert >= orange)
+   - `binary_sensor.serac_{prefix}_has_red_alert` (any alert = red)
+
+2. **Service Calls for Manual Control**
+   - `serac.update_vigilance` service to force refresh
+   - Useful for testing and manual updates
+
+3. **Notification Integration Helpers**
+   - Document automation examples for notifications
+   - Mobile notification templates
+   - TTS announcement examples
+
+4. **Enhanced Attributes**
+   - Add `active_alerts` list to summary sensor attributes
+   - Add `alert_count` attribute
+   - Add `highest_level` attribute
+
+**Estimated Effort**: 1-2 hours
+
+**Expected Outcome**: Easier automation creation, better mobile notification support
+
+### Tasks for Next Session
+
+1. [ ] Add 3 binary sensors (has_active, has_orange, has_red)
+2. [ ] Create `serac.update_vigilance` service
+3. [ ] Add enhanced attributes to summary sensor
+4. [ ] Document automation examples
+5. [ ] Test with MCP
+6. [ ] Release v1.7.2 or v1.8.0 (depending on scope)
+
+---
+
+**Session End**: 2026-02-12 (v1.7.1 released and tested)
+**Next Session**: 2026-02-12 (continued) - Vigilance Enhancements

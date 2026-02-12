@@ -1,0 +1,6 @@
+# Services for Serac integration
+
+update_vigilance:
+  name: Update vigilance data
+  description: Manually refresh weather alert (vigilance) data from Météo-France. This forces an immediate update of all vigilance sensors instead of waiting for the next scheduled update.
+  fields: {}

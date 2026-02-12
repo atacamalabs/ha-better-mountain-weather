@@ -5,8 +5,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 import logging
-import re
-import unicodedata
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -68,36 +66,9 @@ from .const import (
     SENSOR_TYPE_SNOWFALL_CURRENT,
 )
 from .coordinator import AromeCoordinator, BraCoordinator
+from .utils import sanitize_entity_id_part
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _sanitize_entity_id_part(text: str) -> str:
-    """Sanitize text for use in entity IDs.
-
-    Removes accents/diacritics and ensures only valid characters.
-    Home Assistant entity IDs must contain only lowercase letters, numbers, and underscores.
-
-    Args:
-        text: Input text to sanitize
-
-    Returns:
-        Sanitized text safe for entity IDs
-    """
-    # Normalize unicode characters (decompose accents)
-    text = unicodedata.normalize('NFKD', text)
-    # Remove diacritics (accent marks)
-    text = ''.join(c for c in text if not unicodedata.combining(c))
-    # Convert to lowercase
-    text = text.lower()
-    # Replace any non-alphanumeric characters (except underscore) with underscore
-    text = re.sub(r'[^a-z0-9_]+', '_', text)
-    # Remove multiple consecutive underscores
-    text = re.sub(r'_+', '_', text)
-    # Remove leading/trailing underscores
-    text = text.strip('_')
-
-    return text
 
 
 def _parse_bra_datetime(date_str: str | None) -> datetime | None:
@@ -674,7 +645,7 @@ class SeracSensor(CoordinatorEntity[AromeCoordinator], SensorEntity):
         self._longitude = longitude
 
         # Sanitize entity_prefix for entity_id (removes special characters like é, à, etc.)
-        safe_prefix = _sanitize_entity_id_part(entity_prefix)
+        safe_prefix = sanitize_entity_id_part(entity_prefix)
 
         # Set entity_id using new pattern: sensor.serac_{prefix}_{sensor_type}
         self.entity_id = f"sensor.serac_{safe_prefix}_{description.key}"
@@ -744,8 +715,8 @@ class BraSensor(CoordinatorEntity[BraCoordinator], SensorEntity):
         self._massif_name = massif_name
 
         # Sanitize both entity_prefix and massif_name for entity_id
-        safe_prefix = _sanitize_entity_id_part(entity_prefix)
-        massif_slug = _sanitize_entity_id_part(massif_name)
+        safe_prefix = sanitize_entity_id_part(entity_prefix)
+        massif_slug = sanitize_entity_id_part(massif_name)
 
         # Set entity_id using new pattern: sensor.serac_{prefix}_{massif}_{sensor_type}
         self.entity_id = f"sensor.serac_{safe_prefix}_{massif_slug}_{description.key}"
@@ -837,7 +808,7 @@ class VigilanceSensor(CoordinatorEntity, SensorEntity):
         self._sensor_type = sensor_type
 
         # Sanitize entity_prefix for entity_id (removes special characters like é, à, etc.)
-        safe_prefix = _sanitize_entity_id_part(entity_prefix)
+        safe_prefix = sanitize_entity_id_part(entity_prefix)
 
         # Set entity_id: sensor.serac_{prefix}_vigilance_{type}
         self.entity_id = f"sensor.serac_{safe_prefix}_vigilance_{sensor_type}"

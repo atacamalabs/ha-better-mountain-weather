@@ -21,6 +21,7 @@ from .const import (
     CONF_VIGILANCE_TOKEN,
     DOMAIN,
     MASSIF_IDS,
+    MASSIFS,
 )
 
 _LOGGER = logging.getLogger(__name__)

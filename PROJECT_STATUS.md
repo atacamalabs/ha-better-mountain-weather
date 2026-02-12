@@ -1,8 +1,8 @@
 # Serac Integration - Project Status
 
 **Last Updated**: 2026-02-12
-**Current Version**: v1.8.0 🎉
-**Status**: Vigilance Automation Features Complete ✅
+**Current Version**: v1.10.0 🎉
+**Status**: Code Quality Optimizations Complete ✅
 **Repository**: https://github.com/atacamalabs/ha-serac
 **Roadmap**: See ROADMAP.md for development plan
 
@@ -17,7 +17,52 @@ Serac (formerly "Better Mountain Weather") is a Home Assistant integration provi
 
 ---
 
-## ✅ Version 1.8.0 - Vigilance Automation Features (CURRENT)
+## ✅ Version 1.10.0 - Code Quality & Optimization (CURRENT)
+
+### 🎉 What's New in v1.10.0
+
+**v1.10.0 (Latest):**
+- 🐛 **Critical bug fix** - Fixed missing MASSIFS import in config flow
+- 🧹 **Code cleanup** - Eliminated duplicate sanitization function
+- 📦 **New utils module** - Centralized shared utility functions
+- ⚡ **Import optimization** - Moved inline imports to module level
+- 📊 **Code review** - Comprehensive review with detailed report (CODE_REVIEW.md)
+- ✅ **Quality improvements** - DRY principles, better organization, zero duplication
+
+**Impact:**
+- More maintainable codebase
+- Fixed potential crash in massif auto-detection
+- Improved code organization and reusability
+- 50 lines of code saved through deduplication
+
+**Files Changed:**
+- NEW: `custom_components/serac/utils.py` - Shared utilities
+- FIXED: `custom_components/serac/config_flow.py` - Added missing import
+- OPTIMIZED: `custom_components/serac/sensor.py` - Use shared utils
+- OPTIMIZED: `custom_components/serac/binary_sensor.py` - Use shared utils
+- NEW: `CODE_REVIEW.md` - Detailed optimization report
+
+---
+
+## ✅ Version 1.9.0 - Multi-Language Support & Blueprints
+
+### 🎉 What's New in v1.9.0
+
+**v1.9.0:**
+- 🌍 **Multi-language support** - German, Italian, Spanish translations
+- 🎯 **Automation blueprints** - 4 pre-built automation blueprints
+- 📝 **Blueprint documentation** - Complete guide with examples
+- 🎨 **International users** - Better UX for German, Italian, Spanish speakers
+
+**Blueprints:**
+1. Weather Alert Notification - Mobile notifications on alerts
+2. Dangerous Weather TTS - Voice announcements for orange/red alerts
+3. Avalanche Risk Alert - Notifications for high avalanche risk
+4. Red Alert Visual Warning - Flash lights red on extreme weather
+
+---
+
+## ✅ Version 1.8.0 - Vigilance Automation Features
 
 ### 🎉 What's New in v1.8.0
 

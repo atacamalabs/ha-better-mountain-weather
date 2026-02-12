@@ -22,6 +22,7 @@ from .const import (
     DOMAIN,
     MANUFACTURER,
 )
+from .utils import sanitize_entity_id_part
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -109,10 +110,7 @@ class VigilanceAlertBinarySensor(CoordinatorEntity, BinarySensorEntity):
         self._attr_icon = icon
 
         # Sanitize entity_prefix for entity_id
-        import re
-        import unicodedata
-
-        safe_prefix = self._sanitize_entity_id_part(entity_prefix)
+        safe_prefix = sanitize_entity_id_part(entity_prefix)
 
         # Set entity_id: binary_sensor.serac_{prefix}_{type}
         self.entity_id = f"binary_sensor.serac_{safe_prefix}_{sensor_type}"
@@ -122,27 +120,6 @@ class VigilanceAlertBinarySensor(CoordinatorEntity, BinarySensorEntity):
 
         # Set friendly name
         self._attr_name = f"Serac {entity_prefix.title()} {sensor_name}"
-
-    @staticmethod
-    def _sanitize_entity_id_part(text: str) -> str:
-        """Sanitize text for use in entity IDs."""
-        import re
-        import unicodedata
-
-        # Normalize unicode characters (decompose accents)
-        text = unicodedata.normalize('NFKD', text)
-        # Remove diacritics (accent marks)
-        text = ''.join(c for c in text if not unicodedata.combining(c))
-        # Convert to lowercase
-        text = text.lower()
-        # Replace any non-alphanumeric characters (except underscore) with underscore
-        text = re.sub(r'[^a-z0-9_]+', '_', text)
-        # Remove multiple consecutive underscores
-        text = re.sub(r'_+', '_', text)
-        # Remove leading/trailing underscores
-        text = text.strip('_')
-
-        return text
 
     @property
     def device_info(self) -> DeviceInfo:

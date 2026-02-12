@@ -49,13 +49,16 @@ async def async_get_config_entry_diagnostics(
     # AROME coordinator status
     arome_coordinator = data.get("arome_coordinator")
     if arome_coordinator:
+        # Get last update time from data timestamp if available
+        last_update = None
+        if hasattr(arome_coordinator, "last_update_success_time"):
+            last_update = arome_coordinator.last_update_success_time
+        elif arome_coordinator.data and "timestamp" in arome_coordinator.data:
+            last_update = arome_coordinator.data.get("timestamp")
+
         diagnostics_data["coordinators"]["arome"] = {
             "last_update_success": arome_coordinator.last_update_success,
-            "last_update_time": (
-                arome_coordinator.last_update_success_time.isoformat()
-                if arome_coordinator.last_update_success_time
-                else None
-            ),
+            "last_update_time": last_update.isoformat() if last_update else None,
             "update_interval_seconds": (
                 arome_coordinator.update_interval.total_seconds()
                 if arome_coordinator.update_interval
@@ -82,14 +85,17 @@ async def async_get_config_entry_diagnostics(
     if bra_coordinators:
         diagnostics_data["coordinators"]["bra"] = {}
         for massif_id, coordinator in bra_coordinators.items():
+            # Get last update time from data if available
+            last_update = None
+            if hasattr(coordinator, "last_update_success_time"):
+                last_update = coordinator.last_update_success_time
+            elif coordinator.data and "bulletin_date" in coordinator.data:
+                last_update = coordinator.data.get("bulletin_date")
+
             diagnostics_data["coordinators"]["bra"][str(massif_id)] = {
                 "massif_name": coordinator.massif_name,
                 "last_update_success": coordinator.last_update_success,
-                "last_update_time": (
-                    coordinator.last_update_success_time.isoformat()
-                    if coordinator.last_update_success_time
-                    else None
-                ),
+                "last_update_time": last_update.isoformat() if last_update else None,
                 "update_interval_seconds": (
                     coordinator.update_interval.total_seconds()
                     if coordinator.update_interval

@@ -233,6 +233,19 @@ VIGILANCE_PHENOMENA: Final = {
     9: "fog",
 }
 
+# Human-readable names for vigilance phenomena
+VIGILANCE_PHENOMENA_NAMES: Final = {
+    "wind": "Wind",
+    "rain_flood": "Rain/Flood",
+    "thunderstorm": "Thunderstorm",
+    "flood": "Flood",
+    "snow_ice": "Snow/Ice",
+    "extreme_heat": "Extreme Heat",
+    "extreme_cold": "Extreme Cold",
+    "avalanche": "Avalanche",
+    "fog": "Fog",
+}
+
 # French department boundaries for GPS to department code mapping
 # Format: dept_code -> (name, (min_lat, max_lat, min_lon, max_lon))
 DEPARTMENT_BOUNDARIES: Final = {

@@ -587,13 +587,25 @@ async def async_setup_entry(
     # Add Vigilance (weather alert) sensors if coordinator exists
     vigilance_coordinator = hass.data[DOMAIN][entry.entry_id].get("vigilance_coordinator")
     if vigilance_coordinator:
-        # Add level and color sensors
+        # Add overall level and color sensors
         entities.append(VigilanceSensor(
             vigilance_coordinator, location_name, entity_prefix, latitude, longitude, "level"
         ))
         entities.append(VigilanceSensor(
             vigilance_coordinator, location_name, entity_prefix, latitude, longitude, "color"
         ))
+
+        # Add summary sensor (formatted text of active alerts)
+        entities.append(VigilanceSensor(
+            vigilance_coordinator, location_name, entity_prefix, latitude, longitude, "summary"
+        ))
+
+        # Add individual phenomenon sensors
+        from .const import VIGILANCE_PHENOMENA
+        for phenomenon_name in VIGILANCE_PHENOMENA.values():
+            entities.append(VigilanceSensor(
+                vigilance_coordinator, location_name, entity_prefix, latitude, longitude, f"phenom_{phenomenon_name}"
+            ))
 
     async_add_entities(entities, True)
 
@@ -797,6 +809,8 @@ class VigilanceSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"serac_{latitude}_{longitude}_vigilance_{sensor_type}"
 
         # Set name and icon based on sensor type
+        from .const import VIGILANCE_PHENOMENA_NAMES
+
         if sensor_type == "level":
             self._attr_name = f"Serac {entity_prefix.title()} Vigilance Level"
             self._attr_icon = "mdi:alert"
@@ -805,6 +819,31 @@ class VigilanceSensor(CoordinatorEntity, SensorEntity):
         elif sensor_type == "color":
             self._attr_name = f"Serac {entity_prefix.title()} Vigilance Color"
             self._attr_icon = "mdi:palette"
+            self._attr_state_class = None
+            self._attr_native_unit_of_measurement = None
+        elif sensor_type == "summary":
+            self._attr_name = f"Serac {entity_prefix.title()} Vigilance Summary"
+            self._attr_icon = "mdi:text-box-outline"
+            self._attr_state_class = None
+            self._attr_native_unit_of_measurement = None
+        elif sensor_type.startswith("phenom_"):
+            # Individual phenomenon sensor
+            phenomenon = sensor_type.replace("phenom_", "")
+            phenom_name = VIGILANCE_PHENOMENA_NAMES.get(phenomenon, phenomenon.title())
+            self._attr_name = f"Serac {entity_prefix.title()} Vigilance {phenom_name}"
+            # Set icon based on phenomenon type
+            phenom_icons = {
+                "wind": "mdi:weather-windy",
+                "rain_flood": "mdi:weather-pouring",
+                "thunderstorm": "mdi:weather-lightning",
+                "flood": "mdi:flood",
+                "snow_ice": "mdi:snowflake",
+                "extreme_heat": "mdi:sun-thermometer",
+                "extreme_cold": "mdi:snowflake-thermometer",
+                "avalanche": "mdi:image-filter-hdr",
+                "fog": "mdi:weather-fog",
+            }
+            self._attr_icon = phenom_icons.get(phenomenon, "mdi:alert")
             self._attr_state_class = None
             self._attr_native_unit_of_measurement = None
 
@@ -853,8 +892,49 @@ class VigilanceSensor(CoordinatorEntity, SensorEntity):
             return self.coordinator.data.get("overall_level")
         elif self._sensor_type == "color":
             return self.coordinator.data.get("overall_color")
+        elif self._sensor_type == "summary":
+            # Generate a summary of active (non-green) alerts
+            return self._generate_alert_summary()
+        elif self._sensor_type.startswith("phenom_"):
+            # Return the level for a specific phenomenon
+            phenomenon = self._sensor_type.replace("phenom_", "")
+            phenomena = self.coordinator.data.get("phenomena", {})
+            phenom_data = phenomena.get(phenomenon, {})
+            return phenom_data.get("level", 1)  # Default to 1 (green) if not present
 
         return None
+
+    def _generate_alert_summary(self) -> str:
+        """Generate a formatted summary of active alerts."""
+        from .const import VIGILANCE_PHENOMENA_NAMES
+
+        phenomena = self.coordinator.data.get("phenomena", {})
+        if not phenomena:
+            return "No alerts"
+
+        # Group alerts by color/level
+        alerts_by_level = {
+            4: [],  # Red
+            3: [],  # Orange
+            2: [],  # Yellow
+        }
+
+        for phenom_name, phenom_data in phenomena.items():
+            level = phenom_data.get("level", 1)
+            if level > 1:  # Only include non-green alerts
+                display_name = VIGILANCE_PHENOMENA_NAMES.get(phenom_name, phenom_name.title())
+                alerts_by_level[level].append(display_name)
+
+        # Build summary string
+        summary_parts = []
+        level_names = {4: "Red Alert", 3: "Orange Alert", 2: "Yellow Alert"}
+
+        for level in [4, 3, 2]:
+            if alerts_by_level[level]:
+                alert_list = ", ".join(sorted(alerts_by_level[level]))
+                summary_parts.append(f"{level_names[level]}: {alert_list}")
+
+        return ". ".join(summary_parts) if summary_parts else "No alerts"
 
     @property
     def available(self) -> bool:
